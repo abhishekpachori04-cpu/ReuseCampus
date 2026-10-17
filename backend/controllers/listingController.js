@@ -345,6 +345,59 @@ export const markListingAsSold = async (req, res, next) => {
 };
 
 /**
+ * @desc    Update listing status (AVAILABLE / SOLD)
+ * @route   PATCH /api/listings/:id/status
+ * @access  Private (PRD Section 17, 18, 22.2, 22.3)
+ */
+export const updateListingStatus = async (req, res, next) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid listing ID format',
+      });
+    }
+
+    const { status } = req.body;
+    if (!status || !STATUSES.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status '${status}'. Must be one of: ${STATUSES.join(', ')}`,
+      });
+    }
+
+    const listing = await Listing.findById(req.params.id);
+
+    if (!listing) {
+      return res.status(404).json({
+        success: false,
+        message: 'Listing not found',
+      });
+    }
+
+    // PRD Section 17 & 22.3: Only listing owner can modify status
+    if (listing.seller.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized: Only the listing owner can modify item status',
+      });
+    }
+
+    listing.status = status;
+    const savedListing = await listing.save();
+    const populated = await savedListing.populate('seller', 'name email college phone avatar');
+
+    res.json({
+      success: true,
+      data: populated,
+      message: `Listing status updated to ${status} successfully`,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * @desc    Get listings created by the logged-in user
  * @route   GET /api/listings/user/my-listings
  * @access  Private (PRD Section 18, 22.2)
