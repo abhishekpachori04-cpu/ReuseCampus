@@ -6,7 +6,7 @@ const mockListings = [
   {
     id: '1',
     title: 'Scientific Calculator TI-84 Plus CE',
-    category: 'Electronics & Gadgets',
+    category: 'Electronics',
     price: 3500,
     condition: 'Like New',
     status: 'AVAILABLE',

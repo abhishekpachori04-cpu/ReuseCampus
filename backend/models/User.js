@@ -1,10 +1,31 @@
 import mongoose from 'mongoose';
 
 /**
- * College Email Validation Regex:
- * Matches emails ending in .edu, .ac.<country>, .edu.<country>, or containing campus/university/college subdomains
+ * Validates college email against configurable environment variable ALLOWED_EMAIL_DOMAINS
+ * Fallbacks to standard college/university institutional domains (.edu, .ac.*, etc.)
+ * as specified in PRD Section 8.
  */
-const collegeEmailRegex = /^[^\s@]+@([^\s@]+\.)?(edu|ac\.[a-z]{2,}|edu\.[a-z]{2,}|college\.edu|univ\.[a-z]{2,})$/i;
+export const isCollegeEmailValid = (email) => {
+  if (!email || typeof email !== 'string') return false;
+  const lowerEmail = email.toLowerCase().trim();
+  const domain = lowerEmail.split('@')[1];
+  if (!domain) return false;
+
+  const envDomains = process.env.ALLOWED_EMAIL_DOMAINS
+    ? process.env.ALLOWED_EMAIL_DOMAINS.split(',')
+        .map((d) => d.trim().toLowerCase())
+        .filter(Boolean)
+    : [];
+
+  if (envDomains.length > 0) {
+    return envDomains.some((d) => domain === d || domain.endsWith('.' + d));
+  }
+
+  // Fallback: general institutional educational domain regex
+  const institutionalRegex =
+    /^[^\s@]+@([^\s@]+\.)?(edu|ac\.[a-z]{2,}|edu\.[a-z]{2,}|college\.edu|univ\.[a-z]{2,})$/i;
+  return institutionalRegex.test(lowerEmail);
+};
 
 const userSchema = new mongoose.Schema(
   {
@@ -16,17 +37,16 @@ const userSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      required: [true, 'Please provide your institutional email address'],
+      required: [true, 'Please provide your institutional college email address'],
       unique: true,
       trim: true,
       lowercase: true,
       validate: {
         validator: function (value) {
-          // Validates institutional email domains (.edu, .ac.*, etc.)
-          return collegeEmailRegex.test(value);
+          return isCollegeEmailValid(value);
         },
         message: (props) =>
-          `${props.value} is not a valid college/university email address (must end with .edu, .ac.in, etc.)`,
+          `${props.value} is not an authorized college email address for this campus.`,
       },
     },
     passwordHash: {
@@ -46,7 +66,8 @@ const userSchema = new mongoose.Schema(
     },
     avatar: {
       type: String,
-      default: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+      default:
+        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
     },
   },
   {

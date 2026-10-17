@@ -1,5 +1,42 @@
 import mongoose from 'mongoose';
 
+/**
+ * Exact Categories from PRD.md Section 10:
+ * • Books
+ * • Lab Equipment
+ * • Electronics
+ * • Stationery
+ * • Clothing
+ * • Bags & Accessories
+ * • Furniture
+ * • Other
+ */
+export const CATEGORIES = [
+  'Books',
+  'Lab Equipment',
+  'Electronics',
+  'Stationery',
+  'Clothing',
+  'Bags & Accessories',
+  'Furniture',
+  'Other',
+];
+
+/**
+ * Exact Conditions from PRD.md Section 11:
+ * • New
+ * • Like New
+ * • Good
+ * • Fair
+ */
+export const CONDITIONS = ['New', 'Like New', 'Good', 'Fair'];
+
+/**
+ * Listing Lifecycle Statuses from PRD.md Section 17:
+ * AVAILABLE → SOLD
+ */
+export const STATUSES = ['AVAILABLE', 'SOLD'];
+
 const listingSchema = new mongoose.Schema(
   {
     title: {
@@ -24,16 +61,7 @@ const listingSchema = new mongoose.Schema(
       required: [true, 'Please select a category'],
       trim: true,
       enum: {
-        values: [
-          'Textbooks & Notes',
-          'Electronics & Gadgets',
-          'Dorm Essentials',
-          'Furniture',
-          'Bicycles & Transport',
-          'Lab & Sports Gear',
-          'Clothing & Accessories',
-          'Other',
-        ],
+        values: CATEGORIES,
         message: '{VALUE} is not a supported category',
       },
     },
@@ -41,7 +69,7 @@ const listingSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Please specify the item condition'],
       enum: {
-        values: ['New', 'Like New', 'Good', 'Fair'],
+        values: CONDITIONS,
         message: '{VALUE} is not a valid condition (Choose: New, Like New, Good, Fair)',
       },
     },
@@ -57,7 +85,10 @@ const listingSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['AVAILABLE', 'SOLD'],
+      enum: {
+        values: STATUSES,
+        message: '{VALUE} is not a valid status (Choose: AVAILABLE, SOLD)',
+      },
       default: 'AVAILABLE',
     },
   },
@@ -66,9 +97,10 @@ const listingSchema = new mongoose.Schema(
   }
 );
 
-// Index to optimize searching and sorting
+// Indexes to optimize searching and sorting
 listingSchema.index({ title: 'text', description: 'text' });
 listingSchema.index({ seller: 1, createdAt: -1 });
+listingSchema.index({ category: 1, status: 1 });
 
 const Listing = mongoose.model('Listing', listingSchema);
 

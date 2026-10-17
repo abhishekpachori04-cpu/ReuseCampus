@@ -14,10 +14,10 @@ import {
 } from 'lucide-react';
 
 const categories = [
-  { name: 'Textbooks & Notes', icon: BookOpen, count: '140+ items' },
-  { name: 'Electronics & Gadgets', icon: Laptop, count: '85+ items' },
-  { name: 'Dorm Essentials', icon: Armchair, count: '60+ items' },
-  { name: 'Cycles & Vehicles', icon: Bike, count: '30+ items' },
+  { name: 'Books', icon: BookOpen, count: '140+ items' },
+  { name: 'Electronics', icon: Laptop, count: '85+ items' },
+  { name: 'Lab Equipment', icon: Sparkles, count: '60+ items' },
+  { name: 'Furniture', icon: Armchair, count: '30+ items' },
 ];
 
 const Home = () => {

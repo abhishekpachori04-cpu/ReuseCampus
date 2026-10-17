@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { PlusCircle, Image, Tag, DollarSign, FileText, CheckCircle2 } from 'lucide-react';
 
 const categories = [
-  'Textbooks & Notes',
-  'Electronics & Gadgets',
-  'Dorm Essentials',
+  'Books',
+  'Lab Equipment',
+  'Electronics',
+  'Stationery',
+  'Clothing',
+  'Bags & Accessories',
   'Furniture',
-  'Bicycles & Transport',
-  'Lab & Sports Gear',
-  'Clothing & Accessories',
   'Other',
 ];
 
@@ -19,7 +19,7 @@ const CreateListing = () => {
     title: '',
     description: '',
     price: '',
-    category: 'Textbooks & Notes',
+    category: 'Books',
     condition: 'Good',
     imageUrl: '',
   });

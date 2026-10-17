@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+import User, { isCollegeEmailValid } from '../models/User.js';
 
 // Helper to generate JWT token
 const generateToken = (id) => {
@@ -16,8 +16,9 @@ const generateToken = (id) => {
  */
 export const registerUser = async (req, res, next) => {
   try {
-    const { name, email, password, college, phone } = req.body;
+    const { name, email, password, confirmPassword, college, phone } = req.body;
 
+    // Validate required fields as per PRD Section 7.1
     if (!name || !email || !password || !college) {
       return res.status(400).json({
         success: false,
@@ -25,24 +26,49 @@ export const registerUser = async (req, res, next) => {
       });
     }
 
-    const userExists = await User.findOne({ email });
-    if (userExists) {
+    // Password confirmation check if confirmPassword is provided
+    if (confirmPassword && password !== confirmPassword) {
       return res.status(400).json({
         success: false,
-        message: 'A user with this college email already exists',
+        message: 'Password and Confirm Password do not match',
       });
     }
 
-    // Salt and hash password
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long',
+      });
+    }
+
+    // PRD Section 8: College email verification against configured domain
+    const trimmedEmail = email.toLowerCase().trim();
+    if (!isCollegeEmailValid(trimmedEmail)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Invalid college email. Registration is restricted to approved campus institutional email addresses.',
+      });
+    }
+
+    const userExists = await User.findOne({ email: trimmedEmail });
+    if (userExists) {
+      return res.status(400).json({
+        success: false,
+        message: 'A student account with this college email already exists',
+      });
+    }
+
+    // Salt and hash password securely
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
     const user = await User.create({
-      name,
-      email,
+      name: name.trim(),
+      email: trimmedEmail,
       passwordHash,
-      college,
-      phone,
+      college: college.trim(),
+      phone: phone ? phone.trim() : '',
     });
 
     res.status(201).json({
@@ -52,6 +78,8 @@ export const registerUser = async (req, res, next) => {
         name: user.name,
         email: user.email,
         college: user.college,
+        phone: user.phone,
+        avatar: user.avatar,
         token: generateToken(user._id),
       },
     });
@@ -72,15 +100,16 @@ export const loginUser = async (req, res, next) => {
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide email and password',
+        message: 'Please provide both college email and password',
       });
     }
 
-    const user = await User.findOne({ email });
+    const trimmedEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: trimmedEmail });
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password',
+        message: 'Invalid college email or password',
       });
     }
 
@@ -88,7 +117,7 @@ export const loginUser = async (req, res, next) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password',
+        message: 'Invalid college email or password',
       });
     }
 
@@ -99,6 +128,7 @@ export const loginUser = async (req, res, next) => {
         name: user.name,
         email: user.email,
         college: user.college,
+        phone: user.phone,
         avatar: user.avatar,
         token: generateToken(user._id),
       },
@@ -109,7 +139,7 @@ export const loginUser = async (req, res, next) => {
 };
 
 /**
- * @desc    Get current user profile
+ * @desc    Get current user profile (backward-compatible auth endpoint)
  * @route   GET /api/auth/me
  * @access  Private
  */
