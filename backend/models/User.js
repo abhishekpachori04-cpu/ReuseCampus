@@ -1,30 +1,37 @@
 import mongoose from 'mongoose';
 
 /**
- * Validates college email against configurable environment variable ALLOWED_EMAIL_DOMAINS
- * Fallbacks to standard college/university institutional domains (.edu, .ac.*, etc.)
+ * Validates college email against configurable environment variable ALLOWED_COLLEGE_DOMAIN / ALLOWED_EMAIL_DOMAINS
+ * Strict support for RJIT campus emails (e.g., 0902cs241008@rjit.ac.in)
  * as specified in PRD Section 8.
  */
 export const isCollegeEmailValid = (email) => {
   if (!email || typeof email !== 'string') return false;
   const lowerEmail = email.toLowerCase().trim();
-  const domain = lowerEmail.split('@')[1];
-  if (!domain) return false;
 
-  const envDomains = process.env.ALLOWED_EMAIL_DOMAINS
-    ? process.env.ALLOWED_EMAIL_DOMAINS.split(',')
-        .map((d) => d.trim().toLowerCase())
-        .filter(Boolean)
-    : [];
+  // Basic email structure validation allowing alphanumeric student roll numbers (e.g., 0902cs241008@rjit.ac.in)
+  const emailRegex = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/i;
+  const match = lowerEmail.match(emailRegex);
+  if (!match) return false;
 
-  if (envDomains.length > 0) {
-    return envDomains.some((d) => domain === d || domain.endsWith('.' + d));
+  const domain = match[1];
+
+  // Retrieve allowed domains from environment variables (ALLOWED_COLLEGE_DOMAIN takes precedence)
+  const rawDomains =
+    process.env.ALLOWED_COLLEGE_DOMAIN ||
+    process.env.ALLOWED_EMAIL_DOMAINS ||
+    'rjit.ac.in';
+
+  const allowedDomains = rawDomains
+    .split(',')
+    .map((d) => d.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (allowedDomains.length > 0) {
+    return allowedDomains.some((d) => domain === d || domain.endsWith('.' + d));
   }
 
-  // Fallback: general institutional educational domain regex
-  const institutionalRegex =
-    /^[^\s@]+@([^\s@]+\.)?(edu|ac\.[a-z]{2,}|edu\.[a-z]{2,}|college\.edu|univ\.[a-z]{2,})$/i;
-  return institutionalRegex.test(lowerEmail);
+  return domain === 'rjit.ac.in' || domain.endsWith('.rjit.ac.in');
 };
 
 const userSchema = new mongoose.Schema(
@@ -45,8 +52,7 @@ const userSchema = new mongoose.Schema(
         validator: function (value) {
           return isCollegeEmailValid(value);
         },
-        message: (props) =>
-          `${props.value} is not an authorized college email address for this campus.`,
+        message: 'Please use your official RJIT college email ending with @rjit.ac.in',
       },
     },
     passwordHash: {

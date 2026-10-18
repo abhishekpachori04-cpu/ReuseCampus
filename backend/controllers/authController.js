@@ -46,8 +46,7 @@ export const registerUser = async (req, res, next) => {
     if (!isCollegeEmailValid(trimmedEmail)) {
       return res.status(400).json({
         success: false,
-        message:
-          'Invalid college email. Registration is restricted to approved campus institutional email addresses.',
+        message: 'Please use your official RJIT college email ending with @rjit.ac.in',
       });
     }
 

@@ -69,9 +69,9 @@ app.use(
   })
 );
 
-// Body Parsing Middlewares
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Body Parsing Middlewares (increased limit to 10mb for student device photo uploads)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {

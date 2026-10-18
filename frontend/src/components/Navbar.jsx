@@ -1,26 +1,37 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   GraduationCap,
   PlusCircle,
   Package,
   LogIn,
   UserPlus,
+  LogOut,
   Menu,
   X,
   Home,
+  User,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout, isAuthenticated } = useAuth();
 
   const isActive = (path) => location.pathname === path;
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+    setIsOpen(false);
+  };
 
   const navLinks = [
     { name: 'Home', path: '/', icon: Home },
     { name: 'Post Item', path: '/create', icon: PlusCircle, highlight: true },
-    { name: 'My Listings', path: '/my-listings', icon: Package },
+    ...(isAuthenticated ? [{ name: 'My Listings', path: '/my-listings', icon: Package }] : []),
   ];
 
   return (
@@ -69,25 +80,54 @@ const Navbar = () => {
           </div>
 
           {/* Desktop Auth Links */}
-          <div className="hidden md:flex items-center gap-2 pl-4 border-l border-slate-200">
-            <Link
-              to="/login"
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive('/login')
-                  ? 'bg-slate-100 text-slate-900 font-semibold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              <LogIn className="w-4 h-4" />
-              Login
-            </Link>
-            <Link
-              to="/register"
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-slate-800 bg-slate-100 hover:bg-slate-200 transition-colors"
-            >
-              <UserPlus className="w-4 h-4" />
-              Sign Up
-            </Link>
+          <div className="hidden md:flex items-center gap-3 pl-4 border-l border-slate-200">
+            {isAuthenticated ? (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-xl">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">
+                    {user?.name ? user.name.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+                  </div>
+                  <div className="flex flex-col text-left">
+                    <span className="text-xs font-bold text-slate-800 leading-tight">
+                      {user?.name}
+                    </span>
+                    <span className="text-[10px] text-emerald-700 font-medium leading-tight truncate max-w-[120px]">
+                      {user?.college || user?.email}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleLogout}
+                  type="button"
+                  title="Sign Out"
+                  className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive('/login')
+                      ? 'bg-slate-100 text-slate-900 font-semibold'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  }`}
+                >
+                  <LogIn className="w-4 h-4" />
+                  Login
+                </Link>
+                <Link
+                  to="/register"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-slate-800 bg-slate-100 hover:bg-slate-200 transition-colors"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Sign Up
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Toggle Button */}
@@ -107,6 +147,22 @@ const Navbar = () => {
       {/* Mobile Menu Dropdown */}
       {isOpen && (
         <div className="md:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-5 space-y-1 shadow-lg">
+          {isAuthenticated && (
+            <div className="flex items-center gap-3 px-3 py-2.5 mb-2 bg-slate-50 rounded-xl">
+              <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-sm">
+                {user?.name ? user.name.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="text-sm font-bold text-slate-800 leading-tight">
+                  {user?.name}
+                </span>
+                <span className="text-xs text-emerald-700 font-medium leading-tight">
+                  {user?.college || user?.email}
+                </span>
+              </div>
+            </div>
+          )}
+
           {navLinks.map((link) => {
             const Icon = link.icon;
             return (
@@ -127,23 +183,36 @@ const Navbar = () => {
               </Link>
             );
           })}
-          <div className="pt-3 mt-2 border-t border-slate-100 grid grid-cols-2 gap-2">
-            <Link
-              to="/login"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200"
-            >
-              <LogIn className="w-4 h-4" />
-              Login
-            </Link>
-            <Link
-              to="/register"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100"
-            >
-              <UserPlus className="w-4 h-4" />
-              Sign Up
-            </Link>
+
+          <div className="pt-3 mt-2 border-t border-slate-100">
+            {isAuthenticated ? (
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-rose-600 bg-rose-50 rounded-lg hover:bg-rose-100 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out ({user?.name?.split(' ')[0]})
+              </button>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  to="/login"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200"
+                >
+                  <LogIn className="w-4 h-4" />
+                  Login
+                </Link>
+                <Link
+                  to="/register"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Sign Up
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -152,3 +221,4 @@ const Navbar = () => {
 };
 
 export default Navbar;
+
