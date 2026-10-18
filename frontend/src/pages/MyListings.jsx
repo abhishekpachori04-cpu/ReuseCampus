@@ -10,9 +10,27 @@ import {
   Loader2,
   ShoppingBag,
   Lock,
+  Edit3,
+  RotateCcw,
+  IndianRupee,
+  X,
+  Check,
 } from 'lucide-react';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
+
+const categories = [
+  'Books',
+  'Lab Equipment',
+  'Electronics',
+  'Stationery',
+  'Clothing',
+  'Bags & Accessories',
+  'Furniture',
+  'Other',
+];
+
+const conditions = ['New', 'Like New', 'Good', 'Fair'];
 
 const MyListings = () => {
   const { isAuthenticated, loading: authLoading } = useAuth();
@@ -20,6 +38,8 @@ const MyListings = () => {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
+  const [editingListing, setEditingListing] = useState(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const fetchMyListings = useCallback(async () => {
     if (!isAuthenticated) {
@@ -54,24 +74,78 @@ const MyListings = () => {
     }
   }, [authLoading, fetchMyListings]);
 
-  // Mark as sold handler
-  const handleMarkSold = async (id) => {
+  // Toggle status between AVAILABLE and SOLD
+  const handleToggleStatus = async (id, currentStatus) => {
+    const newStatus = currentStatus === 'AVAILABLE' ? 'SOLD' : 'AVAILABLE';
     try {
       setActionSuccess('');
       setErrorMessage('');
-      const res = await API.patch(`/listings/${id}/sold`);
+      const res = await API.patch(`/listings/${id}/status`, { status: newStatus });
       if (res.data?.success) {
-        setActionSuccess('Item successfully marked as SOLD!');
-        // Update local listing status
+        setActionSuccess(`Item marked as ${newStatus}!`);
         setListings((prev) =>
-          prev.map((item) => (item._id === id ? { ...item, status: 'SOLD' } : item))
+          prev.map((item) => (item._id === id ? { ...item, status: newStatus } : item))
         );
       }
     } catch (error) {
-      console.error('Mark as sold failed:', error);
+      console.error('Toggle status failed:', error);
       setErrorMessage(
-        error.response?.data?.message || 'Could not update item status to SOLD.'
+        error.response?.data?.message || 'Could not update item status.'
       );
+    }
+  };
+
+  // Open Edit Modal
+  const handleOpenEdit = (item) => {
+    setEditingListing({
+      _id: item._id,
+      title: item.title,
+      price: item.price,
+      category: item.category,
+      condition: item.condition,
+      description: item.description,
+      imageUrl: item.imageUrl,
+      status: item.status,
+    });
+    setErrorMessage('');
+    setActionSuccess('');
+  };
+
+  // Save Edit Handler
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editingListing) return;
+
+    setSavingEdit(true);
+    setErrorMessage('');
+
+    try {
+      const payload = {
+        title: editingListing.title.trim(),
+        price: Number(editingListing.price),
+        category: editingListing.category,
+        condition: editingListing.condition,
+        description: editingListing.description.trim(),
+        imageUrl: editingListing.imageUrl.trim(),
+        status: editingListing.status,
+      };
+
+      const res = await API.put(`/listings/${editingListing._id}`, payload);
+
+      if (res.data?.success && res.data?.data) {
+        setActionSuccess('Listing updated successfully!');
+        setListings((prev) =>
+          prev.map((item) => (item._id === editingListing._id ? res.data.data : item))
+        );
+        setEditingListing(null);
+      }
+    } catch (error) {
+      console.error('Failed to update listing:', error);
+      setErrorMessage(
+        error.response?.data?.message || 'Failed to update listing. Please check your inputs.'
+      );
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -205,15 +279,18 @@ const MyListings = () => {
                       'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';
                   }}
                 />
-                <span
-                  className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold tracking-wide shadow-sm ${
+                <button
+                  type="button"
+                  onClick={() => handleToggleStatus(item._id, item.status)}
+                  className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold tracking-wide shadow-md transition-transform active:scale-95 cursor-pointer ${
                     item.status === 'AVAILABLE'
-                      ? 'bg-emerald-500 text-white'
-                      : 'bg-slate-700 text-white'
+                      ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                      : 'bg-slate-700 hover:bg-slate-800 text-white'
                   }`}
+                  title="Click to toggle status"
                 >
-                  {item.status}
-                </span>
+                  {item.status} ↺
+                </button>
               </div>
 
               <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
@@ -237,17 +314,41 @@ const MyListings = () => {
                   </span>
 
                   <div className="flex items-center gap-2">
-                    {item.status === 'AVAILABLE' && (
-                      <button
-                        type="button"
-                        onClick={() => handleMarkSold(item._id)}
-                        className="px-2.5 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
-                        title="Mark as SOLD"
-                      >
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        Mark Sold
-                      </button>
-                    )}
+                    {/* Toggle Status Action Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleToggleStatus(item._id, item.status)}
+                      className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 cursor-pointer ${
+                        item.status === 'AVAILABLE'
+                          ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
+                          : 'text-amber-700 bg-amber-50 hover:bg-amber-100'
+                      }`}
+                      title={item.status === 'AVAILABLE' ? 'Mark as SOLD' : 'Re-list as AVAILABLE'}
+                    >
+                      {item.status === 'AVAILABLE' ? (
+                        <>
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          Mark Sold
+                        </>
+                      ) : (
+                        <>
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          Re-list
+                        </>
+                      )}
+                    </button>
+
+                    {/* Edit Listing Action Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEdit(item)}
+                      className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
+                      title="Edit Item Details"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+
+                    {/* Delete Listing Action Button */}
                     <button
                       type="button"
                       onClick={() => handleDelete(item._id, item.title)}
@@ -263,9 +364,190 @@ const MyListings = () => {
           ))}
         </div>
       )}
+
+      {/* Edit Listing Modal */}
+      {editingListing && (
+        <div
+          onClick={() => setEditingListing(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn overflow-y-auto"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-lg w-full border border-slate-200 shadow-2xl p-6 sm:p-8 space-y-6 relative my-8"
+          >
+            <button
+              onClick={() => setEditingListing(null)}
+              type="button"
+              className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div>
+              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 uppercase tracking-wider">
+                Seller Dashboard
+              </span>
+              <h3 className="text-xl font-bold text-slate-900 mt-2">Edit Listing Details</h3>
+              <p className="text-xs text-slate-500">Update item pricing, status, or description</p>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4 text-left">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Item Title *
+                </label>
+                <input
+                  type="text"
+                  value={editingListing.title}
+                  onChange={(e) =>
+                    setEditingListing({ ...editingListing, title: e.target.value })
+                  }
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Category *
+                  </label>
+                  <select
+                    value={editingListing.category}
+                    onChange={(e) =>
+                      setEditingListing({ ...editingListing, category: e.target.value })
+                    }
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    {categories.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Condition *
+                  </label>
+                  <select
+                    value={editingListing.condition}
+                    onChange={(e) =>
+                      setEditingListing({ ...editingListing, condition: e.target.value })
+                    }
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    {conditions.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Price (₹) *
+                  </label>
+                  <div className="relative">
+                    <IndianRupee className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="number"
+                      min="0"
+                      value={editingListing.price}
+                      onChange={(e) =>
+                        setEditingListing({ ...editingListing, price: e.target.value })
+                      }
+                      required
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Status *
+                  </label>
+                  <select
+                    value={editingListing.status}
+                    onChange={(e) =>
+                      setEditingListing({ ...editingListing, status: e.target.value })
+                    }
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="AVAILABLE">AVAILABLE</option>
+                    <option value="SOLD">SOLD</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Image URL / Photo
+                </label>
+                <input
+                  type="text"
+                  value={editingListing.imageUrl}
+                  onChange={(e) =>
+                    setEditingListing({ ...editingListing, imageUrl: e.target.value })
+                  }
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Description *
+                </label>
+                <textarea
+                  rows={3}
+                  value={editingListing.description}
+                  onChange={(e) =>
+                    setEditingListing({ ...editingListing, description: e.target.value })
+                  }
+                  required
+                  className="w-full p-3 rounded-xl border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingListing(null)}
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 font-semibold text-xs hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                >
+                  {savingEdit ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      Save Changes
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default MyListings;
+
 

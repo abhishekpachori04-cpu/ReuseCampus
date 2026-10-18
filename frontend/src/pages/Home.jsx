@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
   Search,
@@ -19,8 +20,13 @@ import {
   Loader2,
   PackageOpen,
   CheckCircle,
+  Copy,
+  MessageCircle,
+  ExternalLink,
+  Edit,
 } from 'lucide-react';
 import API from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const categories = [
   'All',
@@ -37,13 +43,38 @@ const categories = [
 const conditions = ['All', 'New', 'Like New', 'Good', 'Fair'];
 
 const Home = () => {
+  const { user } = useAuth();
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedCondition, setSelectedCondition] = useState('All');
   const [selectedListing, setSelectedListing] = useState(null); // for seller contact modal
+  const [copiedContact, setCopiedContact] = useState(false);
   const [error, setError] = useState('');
+
+  // Lock body scroll and listen for Escape key when modal is open
+  useEffect(() => {
+    if (selectedListing) {
+      document.body.style.overflow = 'hidden';
+
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+          setSelectedListing(null);
+          setCopiedContact(false);
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+
+      return () => {
+        document.body.style.overflow = 'unset';
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+  }, [selectedListing]);
 
   const fetchListings = useCallback(async () => {
     setLoading(true);
@@ -228,7 +259,8 @@ const Home = () => {
             {listings.map((item) => (
               <div
                 key={item._id}
-                className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-lg hover:border-emerald-200 transition-all flex flex-col group"
+                onClick={() => setSelectedListing(item)}
+                className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl hover:border-emerald-300 transition-all flex flex-col group cursor-pointer"
               >
                 {/* Image */}
                 <div className="relative h-48 w-full bg-slate-100 overflow-hidden">
@@ -289,7 +321,10 @@ const Home = () => {
 
                       <button
                         type="button"
-                        onClick={() => setSelectedListing(item)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedListing(item);
+                        }}
                         className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 font-semibold text-xs transition-colors cursor-pointer"
                       >
                         Contact Seller
@@ -310,91 +345,263 @@ const Home = () => {
         )}
       </section>
 
-      {/* Seller Contact Modal */}
-      {selectedListing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-200 shadow-2xl space-y-6 relative">
-            <button
-              onClick={() => setSelectedListing(null)}
-              type="button"
-              className="absolute top-5 right-5 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+      {/* Product Detail & Seller Contact Modal rendered via Portal at root */}
+      {selectedListing &&
+        createPortal(
+          <div
+            id="product-detail-modal-backdrop"
+            onClick={() => {
+              setSelectedListing(null);
+              setCopiedContact(false);
+            }}
+            className="fixed inset-0 w-screen h-screen z-[999] bg-slate-900/65 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-hidden animate-fadeIn"
+          >
+            <div
+              id="product-detail-modal-card"
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl max-w-4xl w-full max-h-[88vh] border border-slate-200/80 shadow-2xl overflow-hidden flex flex-col md:flex-row relative my-auto text-left"
             >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div>
-              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 uppercase tracking-wider">
-                Seller Contact
-              </span>
-              <h3 className="text-xl font-bold text-slate-900 mt-2">{selectedListing.title}</h3>
-              <p className="text-2xl font-black text-emerald-700 mt-1">
-                {selectedListing.price === 0 ? 'FREE' : `₹${selectedListing.price.toLocaleString()}`}
-              </p>
-            </div>
-
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm">
-                  {selectedListing.seller?.name ? selectedListing.seller.name.charAt(0) : 'S'}
-                </div>
-                <div>
-                  <h4 className="font-bold text-slate-800 text-sm">
-                    {selectedListing.seller?.name || 'Campus Student'}
-                  </h4>
-                  <p className="text-xs text-slate-500">
-                    {selectedListing.seller?.college || 'Verified Campus Member'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-slate-200/60 space-y-2 text-xs text-slate-600">
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <a
-                    href={`mailto:${selectedListing.seller?.email}`}
-                    className="text-emerald-700 hover:underline font-medium truncate"
-                  >
-                    {selectedListing.seller?.email || 'N/A'}
-                  </a>
-                </div>
-
-                {selectedListing.seller?.phone && (
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <a
-                      href={`tel:${selectedListing.seller.phone}`}
-                      className="text-slate-800 font-medium"
-                    >
-                      {selectedListing.seller.phone}
-                    </a>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <a
-                href={`mailto:${selectedListing.seller?.email}?subject=Interested in ${encodeURIComponent(selectedListing.title)} on ReuseCampus`}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors shadow-md shadow-emerald-600/20"
+              {/* Close Button - prominent circular button fixed top-right */}
+              <button
+                id="modal-close-button"
+                onClick={() => {
+                  setSelectedListing(null);
+                  setCopiedContact(false);
+                }}
+                type="button"
+                aria-label="Close Modal"
+                className="absolute top-4 right-4 z-30 p-2.5 rounded-full bg-slate-100/90 hover:bg-slate-200 text-slate-700 hover:text-slate-900 shadow-sm transition-all cursor-pointer active:scale-95"
               >
-                <Mail className="w-4 h-4" />
-                Email Student
-              </a>
-              {selectedListing.seller?.phone && (
-                <a
-                  href={`https://wa.me/${selectedListing.seller.phone.replace(/[^0-9]/g, '')}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold text-xs border border-emerald-200 transition-colors"
-                >
-                  <Phone className="w-4 h-4 text-emerald-600" />
-                  WhatsApp
-                </a>
-              )}
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* LEFT COLUMN: Product Image & Badges (md:w-5/12) */}
+              <div className="md:w-5/12 bg-slate-100/90 flex flex-col items-center justify-center p-5 sm:p-6 relative min-h-[220px] md:min-h-0 border-b md:border-b-0 md:border-r border-slate-200/80">
+                {/* Top Badges */}
+                <div className="absolute top-4 left-4 flex flex-wrap gap-1.5 z-10 max-w-[80%]">
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/95 backdrop-blur-md text-slate-800 shadow-sm border border-slate-200/60">
+                    {selectedListing.category}
+                  </span>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide shadow-sm ${
+                      selectedListing.status === 'AVAILABLE'
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-slate-800 text-white'
+                    }`}
+                  >
+                    {selectedListing.status}
+                  </span>
+                </div>
+
+                {/* Product Image - object-contain prevents awkward cropping of tall or wide photos */}
+                <div className="w-full h-full flex items-center justify-center py-6 md:py-2">
+                  <img
+                    src={selectedListing.imageUrl}
+                    alt={selectedListing.title}
+                    className="max-h-[240px] md:max-h-[360px] w-full object-contain rounded-2xl drop-shadow-sm transition-transform duration-300 hover:scale-[1.02]"
+                    onError={(e) => {
+                      e.target.src =
+                        'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80';
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* RIGHT COLUMN: Details & Actions (md:w-7/12) */}
+              <div className="md:w-7/12 p-6 sm:p-7 overflow-y-auto flex flex-col justify-between max-h-[88vh] space-y-5">
+                {/* Header: Condition, Date, Title, Price */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2 pr-10">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Condition: {selectedListing.condition}
+                      </span>
+                      {user?._id &&
+                        String(selectedListing.seller?._id || selectedListing.seller) === String(user._id) && (
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+                            <Sparkles className="w-3 h-3 text-amber-600" />
+                            Your Listing
+                          </span>
+                        )}
+                    </div>
+                    <span className="flex items-center gap-1 text-xs text-slate-400">
+                      <Clock className="w-3.5 h-3.5" />
+                      {new Date(selectedListing.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-snug">
+                      {selectedListing.title}
+                    </h3>
+                    <p className="text-2xl sm:text-3xl font-black text-emerald-700 mt-1">
+                      {selectedListing.price === 0
+                        ? 'FREE / DONATION'
+                        : `₹${selectedListing.price.toLocaleString()}`}
+                    </p>
+                  </div>
+
+                  {/* Description Box */}
+                  <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 max-h-32 overflow-y-auto">
+                    <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                      Item Description
+                    </h4>
+                    <p className="text-xs sm:text-sm text-slate-700 whitespace-pre-line leading-relaxed">
+                      {selectedListing.description}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Bottom Section: Seller Card & Action Buttons */}
+                <div className="space-y-4 pt-2">
+                  {/* Verified Campus Seller Card */}
+                  <div className="p-3.5 bg-emerald-50/60 rounded-2xl border border-emerald-100 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                        Verified Campus Seller
+                      </span>
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full">
+                        Student ID Verified
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-sm shrink-0">
+                        {selectedListing.seller?.name
+                          ? selectedListing.seller.name.charAt(0).toUpperCase()
+                          : 'S'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-slate-900 text-sm truncate">
+                          {selectedListing.seller?.name || 'Campus Student'}
+                        </h4>
+                        <p className="text-xs text-slate-600 flex items-center gap-1 truncate">
+                          <GraduationCap className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span className="truncate">
+                            {selectedListing.seller?.college || 'RJIT Tekanpur'}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-emerald-200/60 space-y-1.5 text-xs">
+                      <div className="flex items-center gap-2 text-slate-700">
+                        <Mail className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span className="font-medium truncate">
+                          {selectedListing.seller?.email || 'N/A'}
+                        </span>
+                      </div>
+
+                      {selectedListing.seller?.phone && (
+                        <div className="flex items-center gap-2 text-slate-700">
+                          <Phone className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span className="font-medium">{selectedListing.seller.phone}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Copy Feedback Toast */}
+                  {copiedContact && (
+                    <div className="flex items-center gap-2 p-2.5 bg-slate-900 text-white text-xs font-semibold rounded-xl justify-center animate-fadeIn">
+                      <CheckCircle className="w-4 h-4 text-emerald-400" />
+                      Seller contact details copied to clipboard!
+                    </div>
+                  )}
+
+                  {/* Owner quick action vs Buyer contact buttons */}
+                  {user?._id &&
+                  String(selectedListing.seller?._id || selectedListing.seller) === String(user._id) ? (
+                    <div className="space-y-2">
+                      <Link
+                        to="/my-listings"
+                        onClick={() => setSelectedListing(null)}
+                        className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-md shadow-amber-500/25 transition-all active:scale-95 cursor-pointer"
+                      >
+                        <Edit className="w-4 h-4" />
+                        Manage in My Listings
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const textToCopy = `Seller: ${selectedListing.seller?.name || 'Campus Student'}\nCollege: ${selectedListing.seller?.college || 'RJIT'}\nEmail: ${selectedListing.seller?.email || 'N/A'}\nPhone: ${selectedListing.seller?.phone || 'N/A'}\nItem: ${selectedListing.title} (₹${selectedListing.price})`;
+                          if (navigator?.clipboard?.writeText) {
+                            navigator.clipboard.writeText(textToCopy).catch(() => {});
+                          }
+                          setCopiedContact(true);
+                          setTimeout(() => setCopiedContact(false), 2500);
+                        }}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors cursor-pointer"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        Copy Listing Details
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {/* WhatsApp Button */}
+                        {selectedListing.seller?.phone ? (
+                          <a
+                            href={`https://wa.me/${(() => {
+                              const clean = selectedListing.seller.phone.replace(/[^0-9]/g, '');
+                              return clean.length === 10 ? `91${clean}` : clean;
+                            })()}?text=${encodeURIComponent(
+                              `Hi, I am interested in your listing "${selectedListing.title}" on ReuseCampus!`
+                            )}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-md shadow-emerald-600/25 transition-all active:scale-95 cursor-pointer"
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                            Chat on WhatsApp
+                          </a>
+                        ) : (
+                          <div className="flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl bg-slate-100 text-slate-400 font-medium text-xs">
+                            <Phone className="w-4 h-4" />
+                            WhatsApp Not Provided
+                          </div>
+                        )}
+
+                        {/* Email Button */}
+                        <a
+                          href={`mailto:${selectedListing.seller?.email}?subject=${encodeURIComponent(
+                            `ReuseCampus: Interested in ${selectedListing.title}`
+                          )}&body=${encodeURIComponent(
+                            `Hi ${selectedListing.seller?.name || 'Seller'},\n\nI saw your listing for "${selectedListing.title}" (₹${selectedListing.price}) on ReuseCampus and would like to buy it.\n\nPlease let me know when and where on campus we can meet.\n\nThank you!`
+                          )}`}
+                          className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-md shadow-slate-900/20 transition-all active:scale-95 cursor-pointer"
+                        >
+                          <Mail className="w-4 h-4" />
+                          Send Email
+                        </a>
+                      </div>
+
+                      {/* Copy Contact Info Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const textToCopy = `Seller: ${selectedListing.seller?.name || 'Campus Student'}\nCollege: ${selectedListing.seller?.college || 'RJIT'}\nEmail: ${selectedListing.seller?.email || 'N/A'}\nPhone: ${selectedListing.seller?.phone || 'N/A'}\nItem: ${selectedListing.title} (₹${selectedListing.price})`;
+                          if (navigator?.clipboard?.writeText) {
+                            navigator.clipboard.writeText(textToCopy).catch(() => {});
+                          }
+                          setCopiedContact(true);
+                          setTimeout(() => setCopiedContact(false), 2500);
+                        }}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors cursor-pointer"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        Copy Contact Info
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       {/* Feature Highlights */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
