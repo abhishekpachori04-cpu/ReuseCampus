@@ -49,9 +49,10 @@ if (process.env.MONGO_URI) {
   console.log('[Database] MONGO_URI not set yet. Skipping initial MongoDB connection.');
 }
 
-// CORS Configuration
+// CORS Configuration (supporting local development and dynamic production URLs via CLIENT_URL)
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:3000',
   'http://127.0.0.1:5173',
   process.env.CLIENT_URL,
 ].filter(Boolean);
@@ -60,10 +61,16 @@ app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (like mobile apps, curl, or Postman)
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin) return callback(null, true);
+      
+      const isAllowed = allowedOrigins.some(
+        (allowed) => origin === allowed || (origin && origin.startsWith(allowed))
+      );
+
+      if (isAllowed || process.env.NODE_ENV !== 'production') {
         return callback(null, true);
       }
-      return callback(null, true); // Permissive for local dev
+      return callback(new Error(`Origin ${origin} not allowed by CORS`));
     },
     credentials: true,
   })
@@ -73,11 +80,13 @@ app.use(
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// Health Check Endpoint
+// Health Check Endpoint (Deployment and uptime monitoring)
 app.get('/api/health', (req, res) => {
   res.json({
+    success: true,
+    message: 'ReuseCampus API is running',
     status: 'online',
-    app: 'ReuseCampus API',
+    environment: process.env.NODE_ENV || 'development',
     timestamp: new Date().toISOString(),
   });
 });
