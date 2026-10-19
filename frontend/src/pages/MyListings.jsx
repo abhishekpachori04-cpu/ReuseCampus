@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Package,
   PlusCircle,
-  CheckCircle,
+  CheckCircle2,
   Clock,
   Trash2,
   AlertCircle,
@@ -15,9 +15,16 @@ import {
   IndianRupee,
   X,
   Check,
+  UploadCloud,
+  Camera,
+  ExternalLink,
+  Sparkles,
+  AlertTriangle,
+  ArrowUpRight,
 } from 'lucide-react';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { compressImageFile } from '../utils/imageCompressor';
 
 const categories = [
   'Books',
@@ -38,9 +45,20 @@ const MyListings = () => {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
+  const [filterTab, setFilterTab] = useState('ALL'); // 'ALL' | 'AVAILABLE' | 'SOLD'
+
+  // Edit Listing State
   const [editingListing, setEditingListing] = useState(null);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [compressingImage, setCompressingImage] = useState(false);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const fileInputRef = useRef(null);
 
+  // Delete Confirmation Modal State
+  const [deletingItem, setDeletingItem] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Fetch logged-in student's listings
   const fetchMyListings = useCallback(async () => {
     if (!isAuthenticated) {
       setLoading(false);
@@ -51,7 +69,6 @@ const MyListings = () => {
     setErrorMessage('');
 
     try {
-      // Backend supports GET /api/listings/my
       const res = await API.get('/listings/my');
       if (res.data?.success && Array.isArray(res.data?.data)) {
         setListings(res.data.data);
@@ -74,41 +91,75 @@ const MyListings = () => {
     }
   }, [authLoading, fetchMyListings]);
 
+  // Status Summary Stats
+  const totalCount = listings.length;
+  const activeCount = listings.filter((item) => item.status === 'AVAILABLE').length;
+  const soldCount = listings.filter((item) => item.status === 'SOLD').length;
+
+  // Filtered listings based on tab
+  const displayedListings = listings.filter((item) => {
+    if (filterTab === 'AVAILABLE') return item.status === 'AVAILABLE';
+    if (filterTab === 'SOLD') return item.status === 'SOLD';
+    return true;
+  });
+
   // Toggle status between AVAILABLE and SOLD
   const handleToggleStatus = async (id, currentStatus) => {
     const newStatus = currentStatus === 'AVAILABLE' ? 'SOLD' : 'AVAILABLE';
     try {
       setActionSuccess('');
       setErrorMessage('');
+
       const res = await API.patch(`/listings/${id}/status`, { status: newStatus });
       if (res.data?.success) {
-        setActionSuccess(`Item marked as ${newStatus}!`);
+        setActionSuccess(
+          newStatus === 'SOLD'
+            ? 'Item marked as SOLD! Great job passing it down.'
+            : 'Item re-listed as AVAILABLE for campus buyers.'
+        );
         setListings((prev) =>
           prev.map((item) => (item._id === id ? { ...item, status: newStatus } : item))
         );
       }
     } catch (error) {
       console.error('Toggle status failed:', error);
-      setErrorMessage(
-        error.response?.data?.message || 'Could not update item status.'
-      );
+      setErrorMessage(error.response?.data?.message || 'Could not update item status.');
     }
   };
 
-  // Open Edit Modal
+  // Open Edit Modal with pre-filled values
   const handleOpenEdit = (item) => {
     setEditingListing({
       _id: item._id,
-      title: item.title,
-      price: item.price,
-      category: item.category,
-      condition: item.condition,
-      description: item.description,
-      imageUrl: item.imageUrl,
-      status: item.status,
+      title: item.title || '',
+      price: item.price ?? '',
+      category: item.category || 'Books',
+      condition: item.condition || 'Good',
+      description: item.description || '',
+      imageUrl: item.imageUrl || '',
+      status: item.status || 'AVAILABLE',
     });
+    setShowUrlInput(false);
     setErrorMessage('');
     setActionSuccess('');
+  };
+
+  // Image replacement via file upload
+  const handleImageFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setCompressingImage(true);
+    try {
+      const compressedDataUrl = await compressImageFile(file, 900, 0.8);
+      setEditingListing((prev) => ({ ...prev, imageUrl: compressedDataUrl }));
+    } catch (err) {
+      console.error('Image compression error:', err);
+      alert(err.message || 'Failed to process selected image file.');
+    } finally {
+      setCompressingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   // Save Edit Handler
@@ -149,38 +200,42 @@ const MyListings = () => {
     }
   };
 
-  // Delete listing handler
-  const handleDelete = async (id, title) => {
-    if (!window.confirm(`Are you sure you want to permanently delete "${title}"?`)) {
-      return;
-    }
+  // Confirm and Execute Delete
+  const handleConfirmDelete = async () => {
+    if (!deletingItem) return;
+
+    setIsDeleting(true);
+    setActionSuccess('');
+    setErrorMessage('');
 
     try {
-      setActionSuccess('');
-      setErrorMessage('');
-      const res = await API.delete(`/listings/${id}`);
+      const res = await API.delete(`/listings/${deletingItem._id}`);
       if (res.data?.success) {
-        setActionSuccess('Listing deleted successfully!');
-        setListings((prev) => prev.filter((item) => item._id !== id));
+        setActionSuccess(`"${deletingItem.title}" has been permanently removed.`);
+        setListings((prev) => prev.filter((item) => item._id !== deletingItem._id));
+        setDeletingItem(null);
       }
     } catch (error) {
       console.error('Delete listing failed:', error);
       setErrorMessage(
         error.response?.data?.message || 'Could not remove listing. Please try again.'
       );
+    } finally {
+      setIsDeleting(false);
     }
   };
 
+  // Unauthenticated State
   if (!authLoading && !isAuthenticated) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-16 text-center space-y-6">
+      <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-6">
         <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-sm">
           <Lock className="w-8 h-8" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-bold text-slate-900">Sign in to view your listings</h2>
+          <h2 className="text-2xl font-bold text-slate-900">Sign in to view your seller dashboard</h2>
           <p className="text-slate-500 text-sm max-w-md mx-auto">
-            You need a verified campus student account to manage your listings and sales.
+            You need a verified campus student account to manage your listings, edit items, and track sales.
           </p>
         </div>
         <Link
@@ -188,26 +243,26 @@ const MyListings = () => {
           state={{ from: { pathname: '/my-listings' } }}
           className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-md shadow-emerald-600/25 transition-all"
         >
-          Sign In Now
+          Sign In to Campus Account
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold uppercase tracking-wider mb-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold uppercase tracking-wider mb-2 border border-emerald-200">
             <Package className="w-3.5 h-3.5" />
-            Seller Dashboard
+            Seller Management
           </div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
             My Campus Listings
           </h1>
           <p className="text-slate-500 text-sm mt-1">
-            Manage your active items, mark as sold, or post new second-hand essentials.
+            Track your second-hand items, toggle availability, edit listings, and confirm campus sales.
           </p>
         </div>
 
@@ -220,161 +275,400 @@ const MyListings = () => {
         </Link>
       </div>
 
+      {/* Requirement 1: Clear Summary Stats at the Top */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        {/* Total Listings Card */}
+        <div
+          onClick={() => setFilterTab('ALL')}
+          className={`p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group ${
+            filterTab === 'ALL'
+              ? 'bg-slate-900 text-white border-slate-900 shadow-lg'
+              : 'bg-white text-slate-800 border-slate-200 hover:border-slate-300 shadow-sm'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span
+              className={`text-xs font-bold uppercase tracking-wider ${
+                filterTab === 'ALL' ? 'text-slate-300' : 'text-slate-500'
+              }`}
+            >
+              Total Listings
+            </span>
+            <div
+              className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                filterTab === 'ALL'
+                  ? 'bg-slate-800 text-emerald-400'
+                  : 'bg-slate-100 text-slate-600'
+              }`}
+            >
+              <Package className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="mt-4 flex items-baseline gap-2">
+            <span className="text-3xl sm:text-4xl font-black">{totalCount}</span>
+            <span
+              className={`text-xs font-medium ${
+                filterTab === 'ALL' ? 'text-slate-400' : 'text-slate-500'
+              }`}
+            >
+              items posted
+            </span>
+          </div>
+          <div className="mt-2 flex items-center text-xs font-semibold gap-1">
+            <span>View All</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </div>
+        </div>
+
+        {/* Active / Available Listings Card */}
+        <div
+          onClick={() => setFilterTab('AVAILABLE')}
+          className={`p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group ${
+            filterTab === 'AVAILABLE'
+              ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/25'
+              : 'bg-white text-slate-800 border-slate-200 hover:border-emerald-300 shadow-sm'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span
+              className={`text-xs font-bold uppercase tracking-wider ${
+                filterTab === 'AVAILABLE' ? 'text-emerald-100' : 'text-emerald-700'
+              }`}
+            >
+              Active Listings
+            </span>
+            <div
+              className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                filterTab === 'AVAILABLE'
+                  ? 'bg-emerald-700 text-white'
+                  : 'bg-emerald-50 text-emerald-600'
+              }`}
+            >
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="mt-4 flex items-baseline gap-2">
+            <span className="text-3xl sm:text-4xl font-black">{activeCount}</span>
+            <span
+              className={`text-xs font-medium ${
+                filterTab === 'AVAILABLE' ? 'text-emerald-100' : 'text-slate-500'
+              }`}
+            >
+              available on campus
+            </span>
+          </div>
+          <div className="mt-2 flex items-center text-xs font-semibold gap-1">
+            <span>Show Available Only</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </div>
+        </div>
+
+        {/* Sold Listings Card */}
+        <div
+          onClick={() => setFilterTab('SOLD')}
+          className={`p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group ${
+            filterTab === 'SOLD'
+              ? 'bg-amber-600 text-white border-amber-600 shadow-lg shadow-amber-600/25'
+              : 'bg-white text-slate-800 border-slate-200 hover:border-amber-300 shadow-sm'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span
+              className={`text-xs font-bold uppercase tracking-wider ${
+                filterTab === 'SOLD' ? 'text-amber-100' : 'text-amber-700'
+              }`}
+            >
+              Sold Items
+            </span>
+            <div
+              className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                filterTab === 'SOLD' ? 'bg-amber-700 text-white' : 'bg-amber-50 text-amber-600'
+              }`}
+            >
+              <ShoppingBag className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="mt-4 flex items-baseline gap-2">
+            <span className="text-3xl sm:text-4xl font-black">{soldCount}</span>
+            <span
+              className={`text-xs font-medium ${
+                filterTab === 'SOLD' ? 'text-amber-100' : 'text-slate-500'
+              }`}
+            >
+              completed sales
+            </span>
+          </div>
+          <div className="mt-2 flex items-center text-xs font-semibold gap-1">
+            <span>Show Sold Only</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </div>
+        </div>
+      </div>
+
+      {/* Notifications / Feedback */}
       {actionSuccess && (
-        <div className="flex items-center gap-2.5 p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-sm animate-fadeIn">
-          <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>{actionSuccess}</span>
+        <div className="flex items-center justify-between gap-3 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-sm animate-fadeIn shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <span className="font-medium">{actionSuccess}</span>
+          </div>
+          <button
+            onClick={() => setActionSuccess('')}
+            className="text-emerald-700 hover:text-emerald-900 p-1 rounded-lg"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
       {errorMessage && (
-        <div className="flex items-start gap-2.5 p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm animate-fadeIn">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
-          <span>{errorMessage}</span>
+        <div className="flex items-center justify-between gap-3 p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl text-sm animate-fadeIn shadow-sm">
+          <div className="flex items-start gap-2.5">
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-rose-600" />
+            <span>{errorMessage}</span>
+          </div>
+          <button
+            onClick={() => setErrorMessage('')}
+            className="text-rose-600 hover:text-rose-800 p-1 rounded-lg"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
+      {/* Filter Tabs */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setFilterTab('ALL')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              filterTab === 'ALL'
+                ? 'bg-slate-900 text-white shadow-sm'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            All Items ({totalCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterTab('AVAILABLE')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              filterTab === 'AVAILABLE'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            Available ({activeCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterTab('SOLD')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              filterTab === 'SOLD'
+                ? 'bg-amber-600 text-white shadow-sm'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            Sold ({soldCount})
+          </button>
+        </div>
+
+        <span className="text-xs text-slate-400">
+          Showing {displayedListings.length} of {totalCount} item{totalCount === 1 ? '' : 's'}
+        </span>
+      </div>
+
       {/* Loading State */}
       {loading ? (
-        <div className="py-20 flex flex-col items-center justify-center text-slate-400 space-y-3">
-          <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
-          <p className="text-sm">Loading your campus listings...</p>
+        <div className="py-24 flex flex-col items-center justify-center text-slate-400 space-y-3">
+          <Loader2 className="w-9 h-9 animate-spin text-emerald-600" />
+          <p className="text-sm font-medium">Loading your campus listings...</p>
         </div>
-      ) : listings.length === 0 ? (
+      ) : displayedListings.length === 0 ? (
         /* Empty State */
-        <div className="py-16 px-4 bg-white rounded-3xl border border-dashed border-slate-300 text-center space-y-4">
-          <div className="w-14 h-14 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto">
-            <ShoppingBag className="w-7 h-7" />
+        <div className="py-20 px-4 bg-white rounded-3xl border border-dashed border-slate-300 text-center space-y-4">
+          <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-3xl flex items-center justify-center mx-auto">
+            <ShoppingBag className="w-8 h-8" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-800">No listings posted yet</h3>
+            <h3 className="text-lg font-bold text-slate-800">
+              {filterTab === 'ALL'
+                ? 'No listings posted yet'
+                : filterTab === 'AVAILABLE'
+                ? 'No active items available'
+                : 'No sold items yet'}
+            </h3>
             <p className="text-slate-500 text-sm max-w-sm mx-auto mt-1">
-              Have textbooks, calculators, furniture, or stationery you don't need anymore? Pass them
-              on to fellow students!
+              {filterTab === 'ALL'
+                ? "Have textbooks, calculators, lab coats, or stationery you don't need? Pass them on to fellow students!"
+                : filterTab === 'AVAILABLE'
+                ? 'All your posted items have been marked as sold, or you have not posted any yet.'
+                : 'When campus buyers purchase your items, mark them as sold to keep your history organized.'}
             </p>
           </div>
-          <Link
-            to="/create"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-md shadow-emerald-600/20 transition-all"
-          >
-            <PlusCircle className="w-4 h-4" />
-            Create Your First Listing
-          </Link>
+          {filterTab !== 'ALL' ? (
+            <button
+              onClick={() => setFilterTab('ALL')}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all cursor-pointer"
+            >
+              Reset Filter
+            </button>
+          ) : (
+            <Link
+              to="/create"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-md shadow-emerald-600/20 transition-all"
+            >
+              <PlusCircle className="w-4 h-4" />
+              Create Your First Listing
+            </Link>
+          )}
         </div>
       ) : (
-        /* Listings Grid */
+        /* Requirement 1: Listings Cards with the 3 Working Action Buttons */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {listings.map((item) => (
-            <div
-              key={item._id}
-              className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col"
-            >
-              <div className="relative h-48 w-full bg-slate-100">
-                <img
-                  src={item.imageUrl}
-                  alt={item.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.target.src =
-                      'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => handleToggleStatus(item._id, item.status)}
-                  className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold tracking-wide shadow-md transition-transform active:scale-95 cursor-pointer ${
-                    item.status === 'AVAILABLE'
-                      ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                      : 'bg-slate-700 hover:bg-slate-800 text-white'
-                  }`}
-                  title="Click to toggle status"
-                >
-                  {item.status} ↺
-                </button>
-              </div>
+          {displayedListings.map((item) => {
+            const isSold = item.status === 'SOLD';
 
-              <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                <div>
-                  <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                    <span className="font-semibold text-emerald-700">{item.category}</span>
-                    <span className="font-medium text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
-                      {item.condition}
+            return (
+              <div
+                key={item._id}
+                className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-lg transition-all flex flex-col group relative"
+              >
+                {/* Image Section */}
+                <div className="relative h-52 w-full bg-slate-100 overflow-hidden">
+                  <img
+                    src={item.imageUrl}
+                    alt={item.title}
+                    className={`w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 ${
+                      isSold ? 'grayscale-[40%] opacity-85' : ''
+                    }`}
+                    onError={(e) => {
+                      e.target.src =
+                        'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';
+                    }}
+                  />
+
+                  {/* Category Badge Top-Left */}
+                  <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/95 backdrop-blur-md text-slate-800 shadow-sm border border-slate-200/60">
+                      {item.category}
                     </span>
                   </div>
-                  <h3 className="font-bold text-slate-900 text-base line-clamp-1">{item.title}</h3>
-                  <p className="text-xl font-extrabold text-emerald-700 mt-2">
-                    {item.price === 0 ? 'FREE' : `₹${item.price.toLocaleString()}`}
-                  </p>
-                </div>
 
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <span className="text-slate-400 flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5" />
-                    {new Date(item.createdAt).toLocaleDateString()}
+                  {/* Status Indicator Top-Right */}
+                  <span
+                    className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-extrabold tracking-wider shadow-sm uppercase ${
+                      isSold
+                        ? 'bg-amber-600 text-white'
+                        : 'bg-emerald-600 text-white'
+                    }`}
+                  >
+                    {item.status}
                   </span>
 
-                  <div className="flex items-center gap-2">
-                    {/* Toggle Status Action Button */}
+                  {/* Watermark badge on image if sold */}
+                  {isSold && (
+                    <div className="absolute inset-0 bg-slate-900/35 backdrop-blur-[1px] flex items-center justify-center pointer-events-none">
+                      <span className="px-4 py-1.5 rounded-xl bg-amber-600/95 text-white font-black text-sm tracking-widest uppercase shadow-lg border border-amber-400/40">
+                        SOLD OUT
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Listing Details */}
+                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
+                      <span className="font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                        {item.condition}
+                      </span>
+                      <span className="flex items-center gap-1 text-slate-400">
+                        <Clock className="w-3.5 h-3.5" />
+                        {new Date(item.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    <h3 className="font-bold text-slate-900 text-base line-clamp-1 group-hover:text-emerald-700 transition-colors">
+                      {item.title}
+                    </h3>
+
+                    <p className="text-xs text-slate-500 line-clamp-2 mt-1 leading-relaxed">
+                      {item.description}
+                    </p>
+
+                    <p className="text-2xl font-black text-emerald-700 mt-3">
+                      {item.price === 0 ? 'FREE' : `₹${item.price.toLocaleString()}`}
+                    </p>
+                  </div>
+
+                  {/* Action Buttons Toolbar: Mark Sold / Edit / Delete */}
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                    {/* Action A: "Mark as Sold" / "Mark Available" Toggle Button */}
                     <button
                       type="button"
                       onClick={() => handleToggleStatus(item._id, item.status)}
-                      className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 cursor-pointer ${
-                        item.status === 'AVAILABLE'
-                          ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
-                          : 'text-amber-700 bg-amber-50 hover:bg-amber-100'
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        isSold
+                          ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200'
+                          : 'bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200'
                       }`}
-                      title={item.status === 'AVAILABLE' ? 'Mark as SOLD' : 'Re-list as AVAILABLE'}
+                      title={isSold ? 'Re-list as AVAILABLE' : 'Mark as SOLD'}
                     >
-                      {item.status === 'AVAILABLE' ? (
+                      {isSold ? (
                         <>
-                          <CheckCircle className="w-3.5 h-3.5" />
-                          Mark Sold
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          Mark Available
                         </>
                       ) : (
                         <>
-                          <RotateCcw className="w-3.5 h-3.5" />
-                          Re-list
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Mark as Sold
                         </>
                       )}
                     </button>
 
-                    {/* Edit Listing Action Button */}
+                    {/* Action B: Edit Button */}
                     <button
                       type="button"
                       onClick={() => handleOpenEdit(item)}
-                      className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
+                      className="p-2 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors cursor-pointer border border-slate-200"
                       title="Edit Item Details"
+                      aria-label="Edit Listing"
                     >
                       <Edit3 className="w-4 h-4" />
                     </button>
 
-                    {/* Delete Listing Action Button */}
+                    {/* Action C: Delete Button */}
                     <button
                       type="button"
-                      onClick={() => handleDelete(item._id, item.title)}
-                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                      onClick={() => setDeletingItem(item)}
+                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer border border-slate-200"
                       title="Delete Listing"
+                      aria-label="Delete Listing"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      {/* Edit Listing Modal */}
+      {/* Requirement 1.b: Clean Edit Listing Modal Pre-filled With Current Fields & File Upload */}
       {editingListing && (
         <div
           onClick={() => setEditingListing(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/65 backdrop-blur-sm animate-fadeIn overflow-y-auto"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-3xl max-w-lg w-full border border-slate-200 shadow-2xl p-6 sm:p-8 space-y-6 relative my-8"
+            className="bg-white rounded-3xl max-w-lg w-full border border-slate-200 shadow-2xl p-6 sm:p-7 space-y-5 relative my-8 text-left"
           >
+            {/* Close Button */}
             <button
               onClick={() => setEditingListing(null)}
               type="button"
@@ -384,14 +678,18 @@ const MyListings = () => {
             </button>
 
             <div>
-              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 uppercase tracking-wider">
-                Seller Dashboard
-              </span>
-              <h3 className="text-xl font-bold text-slate-900 mt-2">Edit Listing Details</h3>
-              <p className="text-xs text-slate-500">Update item pricing, status, or description</p>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 uppercase tracking-wider border border-emerald-200">
+                <Edit3 className="w-3 h-3" />
+                Edit Listing
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mt-1.5">Edit Item Details</h3>
+              <p className="text-xs text-slate-500">
+                Update item specifications, change price, or upload a replacement photo.
+              </p>
             </div>
 
-            <form onSubmit={handleSaveEdit} className="space-y-4 text-left">
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              {/* Item Title */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                   Item Title *
@@ -403,10 +701,12 @@ const MyListings = () => {
                     setEditingListing({ ...editingListing, title: e.target.value })
                   }
                   required
+                  placeholder="e.g. Higher Engineering Mathematics by B.S. Grewal"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
+              {/* Category & Condition */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
@@ -447,6 +747,7 @@ const MyListings = () => {
                 </div>
               </div>
 
+              {/* Price & Status */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
@@ -462,6 +763,7 @@ const MyListings = () => {
                         setEditingListing({ ...editingListing, price: e.target.value })
                       }
                       required
+                      placeholder="0 for Free"
                       className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
@@ -484,21 +786,86 @@ const MyListings = () => {
                 </div>
               </div>
 
+              {/* Image Preview & Replacement Section (Allows File Upload Replacement) */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Image URL / Photo
+                  Item Photo *
                 </label>
+
+                <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+                  {/* Thumbnail */}
+                  <div className="relative w-16 h-16 rounded-xl bg-slate-200 overflow-hidden shrink-0 border border-slate-300">
+                    <img
+                      src={editingListing.imageUrl}
+                      alt="Current"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.src =
+                          'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';
+                      }}
+                    />
+                    {compressingImage && (
+                      <div className="absolute inset-0 bg-slate-900/60 flex items-center justify-center">
+                        <Loader2 className="w-4 h-4 text-white animate-spin" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex-1 space-y-1.5">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={compressingImage}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm transition-all cursor-pointer"
+                      >
+                        <Camera className="w-3.5 h-3.5" />
+                        {compressingImage ? 'Processing...' : 'Replace Photo'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowUrlInput(!showUrlInput)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-medium transition-colors cursor-pointer"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        {showUrlInput ? 'Hide URL' : 'Edit URL'}
+                      </button>
+                    </div>
+
+                    <p className="text-[11px] text-slate-500">
+                      Upload from phone/camera or paste a web link.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Hidden File Input */}
                 <input
-                  type="text"
-                  value={editingListing.imageUrl}
-                  onChange={(e) =>
-                    setEditingListing({ ...editingListing, imageUrl: e.target.value })
-                  }
-                  required
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageFileChange}
+                  accept="image/*"
+                  className="hidden"
                 />
+
+                {/* Optional Direct URL Input */}
+                {showUrlInput && (
+                  <div className="mt-2 animate-fadeIn">
+                    <input
+                      type="text"
+                      value={editingListing.imageUrl}
+                      onChange={(e) =>
+                        setEditingListing({ ...editingListing, imageUrl: e.target.value })
+                      }
+                      placeholder="https://..."
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                )}
               </div>
 
+              {/* Description */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                   Description *
@@ -510,11 +877,13 @@ const MyListings = () => {
                     setEditingListing({ ...editingListing, description: e.target.value })
                   }
                   required
-                  className="w-full p-3 rounded-xl border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="Specify edition, highlights, accessories included, campus handover location..."
+                  className="w-full p-3 rounded-xl border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 leading-relaxed"
                 />
               </div>
 
-              <div className="flex gap-2 pt-2">
+              {/* Modal Action Buttons */}
+              <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setEditingListing(null)}
@@ -524,13 +893,13 @@ const MyListings = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={savingEdit}
+                  disabled={savingEdit || compressingImage}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
                 >
                   {savingEdit ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      Saving...
+                      Saving Changes...
                     </>
                   ) : (
                     <>
@@ -544,10 +913,65 @@ const MyListings = () => {
           </div>
         </div>
       )}
+
+      {/* Requirement 1.c: Clean Delete Confirmation Modal */}
+      {deletingItem && (
+        <div
+          onClick={() => !isDeleting && setDeletingItem(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/65 backdrop-blur-sm animate-fadeIn"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-md w-full border border-slate-200 shadow-2xl p-6 sm:p-7 space-y-5 text-center relative"
+          >
+            <div className="w-14 h-14 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+              <AlertTriangle className="w-7 h-7" />
+            </div>
+
+            <div>
+              <h3 className="text-xl font-bold text-slate-900">Delete this listing?</h3>
+              <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+                Are you sure you want to permanently remove{' '}
+                <strong className="text-slate-800">"{deletingItem.title}"</strong>?
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                This action cannot be undone and the item will be removed from the campus marketplace.
+              </p>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setDeletingItem(null)}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 font-semibold text-xs hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                No, Keep Item
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleConfirmDelete}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:bg-rose-400 text-white font-semibold text-xs shadow-md shadow-rose-600/20 transition-all cursor-pointer"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Yes, Delete
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default MyListings;
-
-
