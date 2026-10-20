@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Clock, GraduationCap } from 'lucide-react';
 
 const FALLBACK_IMAGE =
@@ -8,6 +8,7 @@ const FALLBACK_IMAGE =
  * Marketplace Listing Card Component
  */
 const ListingCard = ({ item, onSelect }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
   const isSold = item.status === 'SOLD';
   const isFree = item.price === 0;
 
@@ -26,11 +27,14 @@ const ListingCard = ({ item, onSelect }) => {
           src={item.imageUrl}
           alt={item.title}
           loading="lazy"
-          className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${
-            isSold ? 'grayscale-[35%]' : ''
-          }`}
+          decoding="async"
+          onLoad={() => setIsLoaded(true)}
+          className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-500 ${
+            isLoaded ? 'opacity-100' : 'opacity-0'
+          } ${isSold ? 'grayscale-[35%]' : ''}`}
           onError={(e) => {
             e.currentTarget.src = FALLBACK_IMAGE;
+            setIsLoaded(true);
           }}
         />
 

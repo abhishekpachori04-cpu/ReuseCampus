@@ -16,15 +16,22 @@ import { useDebounce } from '../hooks/useDebounce';
 import ListingCard from '../components/listings/ListingCard';
 import ListingDetailModal from '../components/listings/ListingDetailModal';
 import ListingFilterBar from '../components/listings/ListingFilterBar';
+import ListingSkeleton from '../components/ui/ListingSkeleton';
 
 /**
- * Main campus marketplace discovery feed
+ * Main campus marketplace discovery feed with pagination and skeleton loading
  */
 const Home = () => {
   const { user } = useAuth();
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Filters & Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,44 +46,62 @@ const Home = () => {
   // Selected listing for modal quick-view
   const [selectedListing, setSelectedListing] = useState(null);
 
-  const fetchListings = useCallback(async () => {
-    setLoading(true);
-    setError('');
-
-    try {
-      const params = {};
-      if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
-      if (selectedCategory !== 'All') params.category = selectedCategory;
-      if (selectedCondition !== 'All') params.condition = selectedCondition;
-      if (selectedStatus) params.status = selectedStatus;
-      if (sortBy) params.sort = sortBy;
-
-      const res = await API.get('/listings', { params });
-      if (res.data?.success && Array.isArray(res.data?.data)) {
-        let items = res.data.data;
-        // Keep AVAILABLE items prioritised when viewing ALL statuses
-        if (selectedStatus === 'ALL' && sortBy === 'newest') {
-          items = [...items].sort((a, b) => {
-            if (a.status === 'AVAILABLE' && b.status === 'SOLD') return -1;
-            if (a.status === 'SOLD' && b.status === 'AVAILABLE') return 1;
-            return new Date(b.createdAt) - new Date(a.createdAt);
-          });
-        }
-        setListings(items);
+  const fetchListings = useCallback(
+    async (pageToFetch = 1, isAppending = false) => {
+      if (isAppending) {
+        setLoadingMore(true);
       } else {
-        setListings([]);
+        setLoading(true);
       }
-    } catch (err) {
-      console.error('Failed to load listings:', err);
-      setError('Unable to load listings. Please check your network connection.');
-    } finally {
-      setLoading(false);
-    }
-  }, [debouncedSearch, selectedCategory, selectedCondition, selectedStatus, sortBy]);
+      setError('');
+
+      try {
+        const params = {
+          page: pageToFetch,
+          limit: 8,
+        };
+        if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
+        if (selectedCategory !== 'All') params.category = selectedCategory;
+        if (selectedCondition !== 'All') params.condition = selectedCondition;
+        if (selectedStatus) params.status = selectedStatus;
+        if (sortBy) params.sort = sortBy;
+
+        const res = await API.get('/listings', { params });
+        if (res.data?.success && Array.isArray(res.data?.data)) {
+          const items = res.data.data;
+          if (isAppending) {
+            setListings((prev) => [...prev, ...items]);
+          } else {
+            setListings(items);
+          }
+
+          setPage(pageToFetch);
+          setHasMore(Boolean(res.data.pagination?.hasMore));
+          setTotalCount(res.data.pagination?.total || 0);
+        } else {
+          if (!isAppending) setListings([]);
+          setHasMore(false);
+        }
+      } catch (err) {
+        console.error('Failed to load listings:', err);
+        setError('Unable to load listings. Please check your network connection.');
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [debouncedSearch, selectedCategory, selectedCondition, selectedStatus, sortBy]
+  );
 
   useEffect(() => {
-    fetchListings();
+    fetchListings(1, false);
   }, [fetchListings]);
+
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchListings(page + 1, true);
+    }
+  };
 
   return (
     <div className="space-y-12 pb-16">
@@ -171,11 +196,12 @@ const Home = () => {
           </div>
         )}
 
-        {/* Listings Display Grid */}
+        {/* Listings Display Grid or Skeletons */}
         {loading ? (
-          <div className="py-20 flex flex-col items-center justify-center text-slate-400 space-y-3">
-            <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
-            <p className="text-sm">Fetching verified listings from campus...</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <ListingSkeleton key={index} />
+            ))}
           </div>
         ) : listings.length === 0 ? (
           <div className="py-16 px-4 bg-white rounded-3xl border border-dashed border-slate-300 text-center space-y-4">
@@ -196,14 +222,44 @@ const Home = () => {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {listings.map((item) => (
-              <ListingCard
-                key={item._id}
-                item={item}
-                onSelect={setSelectedListing}
-              />
-            ))}
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {listings.map((item) => (
+                <ListingCard
+                  key={item._id}
+                  item={item}
+                  onSelect={setSelectedListing}
+                />
+              ))}
+            </div>
+
+            {/* Load More Button */}
+            {hasMore && (
+              <div className="flex justify-center pt-4">
+                <button
+                  type="button"
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="inline-flex items-center gap-2 px-7 py-3 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 font-bold text-sm border border-slate-200 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
+                >
+                  {loadingMore ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                      Loading more items...
+                    </>
+                  ) : (
+                    <>
+                      <span>Load More Items</span>
+                      {totalCount > 0 && (
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                          {listings.length} of {totalCount}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </section>

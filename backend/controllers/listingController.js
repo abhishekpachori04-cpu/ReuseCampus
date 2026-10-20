@@ -64,14 +64,35 @@ export const getListings = asyncHandler(async (req, res) => {
     sortCriteria = { createdAt: -1 };
   }
 
-  const listings = await Listing.find(query)
-    .populate('seller', 'name email college phone avatar')
-    .sort(sortCriteria);
+  // Pagination parameters (default page 1, limit 8)
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 8));
+  const skip = (page - 1) * limit;
+
+  // Run lean count and fetch queries concurrently for optimal throughput
+  const [total, listings] = await Promise.all([
+    Listing.countDocuments(query),
+    Listing.find(query)
+      .populate('seller', 'name email college phone avatar')
+      .sort(sortCriteria)
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+  ]);
+
+  const pages = Math.ceil(total / limit) || 1;
+  const hasMore = page < pages;
 
   res.json({
     success: true,
     count: listings.length,
     data: listings,
+    pagination: {
+      total,
+      page,
+      pages,
+      hasMore,
+    },
   });
 });
 
@@ -88,10 +109,9 @@ export const getListingById = asyncHandler(async (req, res) => {
     });
   }
 
-  const listing = await Listing.findById(req.params.id).populate(
-    'seller',
-    'name email college phone avatar'
-  );
+  const listing = await Listing.findById(req.params.id)
+    .populate('seller', 'name email college phone avatar')
+    .lean();
 
   if (!listing) {
     return res.status(404).json({
@@ -381,7 +401,8 @@ export const updateListingStatus = asyncHandler(async (req, res) => {
 export const getMyListings = asyncHandler(async (req, res) => {
   const listings = await Listing.find({ seller: req.user._id })
     .populate('seller', 'name email college phone avatar')
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean();
 
   res.json({
     success: true,
