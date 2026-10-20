@@ -15,10 +15,8 @@ import {
   IndianRupee,
   X,
   Check,
-  UploadCloud,
   Camera,
   ExternalLink,
-  Sparkles,
   AlertTriangle,
   ArrowUpRight,
 } from 'lucide-react';
@@ -26,18 +24,7 @@ import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { compressImageFile } from '../utils/imageCompressor';
 
-const categories = [
-  'Books',
-  'Lab Equipment',
-  'Electronics',
-  'Stationery',
-  'Clothing',
-  'Bags & Accessories',
-  'Furniture',
-  'Other',
-];
-
-const conditions = ['New', 'Like New', 'Good', 'Fair'];
+import { CATEGORIES, CONDITIONS } from '../constants/campusConstants';
 
 const MyListings = () => {
   const { isAuthenticated, loading: authLoading } = useAuth();
@@ -719,7 +706,7 @@ const MyListings = () => {
                     }
                     className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   >
-                    {categories.map((c) => (
+                    {CATEGORIES.map((c) => (
                       <option key={c} value={c}>
                         {c}
                       </option>
@@ -738,7 +725,7 @@ const MyListings = () => {
                     }
                     className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   >
-                    {conditions.map((c) => (
+                    {CONDITIONS.map((c) => (
                       <option key={c} value={c}>
                         {c}
                       </option>

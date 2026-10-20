@@ -16,18 +16,8 @@ import {
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
-const categories = [
-  'Books',
-  'Lab Equipment',
-  'Electronics',
-  'Stationery',
-  'Clothing',
-  'Bags & Accessories',
-  'Furniture',
-  'Other',
-];
-
-const conditions = ['New', 'Like New', 'Good', 'Fair'];
+import { CATEGORIES, CONDITIONS } from '../constants/campusConstants';
+import { compressImageFile } from '../utils/imageCompressor';
 
 // Preset sample images for quick testing
 const imagePresets = [
@@ -52,8 +42,6 @@ const imagePresets = [
     url: 'https://images.unsplash.com/photo-1580481077195-c3a82da91609?auto=format&fit=crop&w=600&q=80',
   },
 ];
-
-import { compressImageFile } from '../utils/imageCompressor';
 
 const CreateListing = () => {
   const { isAuthenticated } = useAuth();
@@ -235,7 +223,7 @@ const CreateListing = () => {
                 onChange={handleChange}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
               >
-                {categories.map((cat) => (
+                {CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
                   </option>
@@ -253,7 +241,7 @@ const CreateListing = () => {
                 onChange={handleChange}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
               >
-                {conditions.map((cond) => (
+                {CONDITIONS.map((cond) => (
                   <option key={cond} value={cond}>
                     {cond}
                   </option>

@@ -1,16 +1,5 @@
 import mongoose from 'mongoose';
 
-/**
- * Exact Categories from PRD.md Section 10:
- * • Books
- * • Lab Equipment
- * • Electronics
- * • Stationery
- * • Clothing
- * • Bags & Accessories
- * • Furniture
- * • Other
- */
 export const CATEGORIES = [
   'Books',
   'Lab Equipment',
@@ -22,19 +11,8 @@ export const CATEGORIES = [
   'Other',
 ];
 
-/**
- * Exact Conditions from PRD.md Section 11:
- * • New
- * • Like New
- * • Good
- * • Fair
- */
 export const CONDITIONS = ['New', 'Like New', 'Good', 'Fair'];
 
-/**
- * Listing Lifecycle Statuses from PRD.md Section 17:
- * AVAILABLE → SOLD
- */
 export const STATUSES = ['AVAILABLE', 'SOLD'];
 
 const listingSchema = new mongoose.Schema(
@@ -97,10 +75,10 @@ const listingSchema = new mongoose.Schema(
   }
 );
 
-// Indexes to optimize searching and sorting
-listingSchema.index({ title: 'text', description: 'text' });
+// High-speed compound indexes for feed filtering and user dashboard queries
+listingSchema.index({ status: 1, category: 1, createdAt: -1 });
 listingSchema.index({ seller: 1, createdAt: -1 });
-listingSchema.index({ category: 1, status: 1 });
+listingSchema.index({ title: 'text', description: 'text' });
 
 const Listing = mongoose.model('Listing', listingSchema);
 

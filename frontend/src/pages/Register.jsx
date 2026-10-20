@@ -2,21 +2,13 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { UserPlus, Mail, Lock, User, Building, Phone, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-
-const collegeOptions = [
-  'Rustamji Institute of Technology (RJIT), Tekanpur',
-  'RGPV (Rajiv Gandhi Proudyogiki Vishwavidyalaya), Bhopal',
-  'MITS (Madhav Institute of Technology & Science), Gwalior',
-  'Jiwaji University, Gwalior',
-  'IIITM (ABV-IIITM), Gwalior',
-  'Other Campus / University',
-];
+import { COLLEGES, DEFAULT_COLLEGE } from '../constants/campusConstants';
 
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    college: 'Rustamji Institute of Technology (RJIT), Tekanpur',
+    college: DEFAULT_COLLEGE,
     phone: '',
     password: '',
     confirmPassword: '',
@@ -143,7 +135,7 @@ const Register = () => {
                 required
                 className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
               >
-                {collegeOptions.map((option) => (
+                {COLLEGES.map((option) => (
                   <option key={option} value={option}>
                     {option}
                   </option>

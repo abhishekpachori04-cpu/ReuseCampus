@@ -18,7 +18,6 @@ import {
   Check,
   AlertCircle,
   CheckCircle2,
-  Edit2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
