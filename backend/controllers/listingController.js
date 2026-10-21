@@ -8,9 +8,22 @@ import asyncHandler from '../utils/asyncHandler.js';
  * @access  Public
  */
 export const getListings = asyncHandler(async (req, res) => {
-  const { category, search, condition, status, minPrice, maxPrice, isFree, sort } = req.query;
+  const { category, search, condition, status, minPrice, maxPrice, isFree, sort, ids } = req.query;
 
   const query = {};
+
+  // Wishlist or batch ID filtering
+  if (ids) {
+    const idList = ids
+      .split(',')
+      .map((id) => id.trim())
+      .filter((id) => mongoose.Types.ObjectId.isValid(id));
+    if (idList.length > 0) {
+      query._id = { $in: idList };
+    } else {
+      query._id = { $in: [] };
+    }
+  }
 
   // Status filter: defaults to AVAILABLE unless ALL or specific status requested
   if (status && status !== 'ALL') {

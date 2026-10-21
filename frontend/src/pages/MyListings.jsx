@@ -585,9 +585,17 @@ const MyListings = () => {
                       {item.description}
                     </p>
 
-                    <p className="text-2xl font-black text-emerald-700 mt-3">
-                      {item.price === 0 ? 'FREE' : `₹${item.price.toLocaleString()}`}
-                    </p>
+                    {Number(item.price) === 0 ? (
+                      <div className="mt-3">
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-emerald-50 text-emerald-700 font-extrabold text-xs sm:text-sm border border-emerald-200 shadow-sm">
+                          🎁 FREE FOR JUNIORS
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-2xl font-black text-emerald-700 mt-3">
+                        ₹{item.price.toLocaleString()}
+                      </p>
+                    )}
                   </div>
 
                   {/* Action Buttons Toolbar: Mark Sold / Edit / Delete */}
@@ -734,6 +742,42 @@ const MyListings = () => {
                 </div>
               </div>
 
+              {/* Prominent Free Donation Toggle */}
+              <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-2xl flex items-center justify-between">
+                <label
+                  htmlFor="edit-free-donation-toggle"
+                  className="flex items-center gap-2.5 cursor-pointer select-none"
+                >
+                  <input
+                    id="edit-free-donation-toggle"
+                    type="checkbox"
+                    checked={Number(editingListing.price) === 0}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setEditingListing({
+                        ...editingListing,
+                        price: checked ? '0' : '',
+                      });
+                    }}
+                    className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer accent-emerald-600"
+                  />
+                  <div>
+                    <span className="text-xs sm:text-sm font-bold text-emerald-950 flex items-center gap-1">
+                      🎁 Donate this item for FREE to a Junior (₹0)
+                    </span>
+                    <p className="text-[10px] sm:text-[11px] text-emerald-700">
+                      Giveaway mode: Sets price to ₹0 for juniors
+                    </p>
+                  </div>
+                </label>
+
+                {Number(editingListing.price) === 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-600 text-white shadow-sm shrink-0">
+                    FREE
+                  </span>
+                )}
+              </div>
+
               {/* Price & Status */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -749,9 +793,14 @@ const MyListings = () => {
                       onChange={(e) =>
                         setEditingListing({ ...editingListing, price: e.target.value })
                       }
+                      disabled={Number(editingListing.price) === 0}
                       required
-                      placeholder="0 for Free"
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      placeholder={Number(editingListing.price) === 0 ? '0 (Free Donation)' : '0 for Free'}
+                      className={`w-full pl-9 pr-3 py-2.5 rounded-xl border text-sm transition-all ${
+                        Number(editingListing.price) === 0
+                          ? 'bg-emerald-50/50 border-emerald-300 text-emerald-800 font-bold cursor-not-allowed'
+                          : 'border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500'
+                      }`}
                     />
                   </div>
                 </div>

@@ -63,6 +63,7 @@ const CreateListing = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [imageFileName, setImageFileName] = useState('');
+  const [isFreeDonation, setIsFreeDonation] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -250,23 +251,64 @@ const CreateListing = () => {
             </div>
           </div>
 
-          {/* Price (with IndianRupee ₹ icon) */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
-              Price (₹) *
-            </label>
-            <div className="relative">
-              <IndianRupee className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="number"
-                name="price"
-                value={formData.price}
-                onChange={handleChange}
-                placeholder="0 (Set 0 for free giveaway)"
-                min="0"
-                required
-                className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
-              />
+          {/* Free Donation to Junior Toggle & Price */}
+          <div className="space-y-3">
+            {/* Prominent Free Donation Checkbox */}
+            <div className="flex items-center justify-between p-3.5 bg-emerald-50/80 border border-emerald-200 rounded-2xl transition-all">
+              <label htmlFor="create-free-donation-toggle" className="flex items-center gap-3 cursor-pointer select-none">
+                <input
+                  id="create-free-donation-toggle"
+                  type="checkbox"
+                  checked={isFreeDonation}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setIsFreeDonation(checked);
+                    setFormData((prev) => ({
+                      ...prev,
+                      price: checked ? '0' : '',
+                    }));
+                  }}
+                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer accent-emerald-600"
+                />
+                <div>
+                  <span className="text-sm font-bold text-emerald-950 flex items-center gap-1.5">
+                    🎁 Donate this item for FREE to a Junior (₹0)
+                  </span>
+                  <p className="text-[11px] text-emerald-700">
+                    Give back to your campus community by passing down textbooks, notes, or lab gear without charge.
+                  </p>
+                </div>
+              </label>
+
+              {isFreeDonation && (
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-600 text-white shadow-sm shrink-0">
+                  FREE GIVEAWAY
+                </span>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                Price (₹) *
+              </label>
+              <div className="relative">
+                <IndianRupee className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="number"
+                  name="price"
+                  value={formData.price}
+                  onChange={handleChange}
+                  disabled={isFreeDonation}
+                  placeholder={isFreeDonation ? '0 (Free Donation to Juniors)' : '0 (Set 0 for free giveaway)'}
+                  min="0"
+                  required
+                  className={`w-full pl-10 pr-4 py-3 rounded-xl border text-sm transition-all ${
+                    isFreeDonation
+                      ? 'bg-emerald-50/50 border-emerald-300 text-emerald-800 font-bold cursor-not-allowed'
+                      : 'border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500'
+                  }`}
+                />
+              </div>
             </div>
           </div>
 

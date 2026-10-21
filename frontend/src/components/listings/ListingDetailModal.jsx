@@ -14,7 +14,9 @@ import {
   Sparkles,
   Edit,
   AlertCircle,
+  Heart,
 } from 'lucide-react';
+import useWishlist from '../../hooks/useWishlist';
 
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80';
@@ -24,6 +26,7 @@ const FALLBACK_IMAGE =
  */
 const ListingDetailModal = ({ listing, onClose, currentUser }) => {
   const [copiedContact, setCopiedContact] = useState(false);
+  const { isWishlisted, toggleWishlist } = useWishlist();
 
   // Lock body scroll and register escape key dismiss listener
   useEffect(() => {
@@ -48,7 +51,8 @@ const ListingDetailModal = ({ listing, onClose, currentUser }) => {
   if (!listing) return null;
 
   const isSold = listing.status === 'SOLD';
-  const isFree = listing.price === 0;
+  const isFree = Number(listing.price) === 0;
+  const isSaved = isWishlisted(listing._id);
   const isOwner =
     currentUser?._id &&
     String(listing.seller?._id || listing.seller) === String(currentUser._id);
@@ -103,6 +107,26 @@ const ListingDetailModal = ({ listing, onClose, currentUser }) => {
         onClick={(e) => e.stopPropagation()}
         className="bg-white rounded-3xl max-w-4xl w-full max-h-[88vh] border border-slate-200/80 shadow-2xl overflow-hidden flex flex-col md:flex-row relative my-auto text-left"
       >
+        {/* Wishlist Bookmark Button */}
+        <button
+          onClick={() => toggleWishlist(listing._id)}
+          type="button"
+          aria-label={isSaved ? 'Remove from Wishlist' : 'Save to Wishlist'}
+          className={`absolute top-4 right-16 z-30 px-3 py-2 rounded-full shadow-sm transition-all cursor-pointer active:scale-95 flex items-center gap-1.5 text-xs font-bold ${
+            isSaved
+              ? 'bg-rose-50 text-rose-600 border border-rose-200'
+              : 'bg-white/95 hover:bg-rose-50 hover:text-rose-600 text-slate-700 border border-slate-200'
+          }`}
+          title={isSaved ? 'Remove from Wishlist' : 'Save to Wishlist'}
+        >
+          <Heart
+            className={`w-4 h-4 transition-transform duration-200 ${
+              isSaved ? 'fill-rose-500 text-rose-500 scale-110' : ''
+            }`}
+          />
+          <span className="hidden sm:inline">{isSaved ? 'Saved' : 'Save'}</span>
+        </button>
+
         {/* Close Button */}
         <button
           id="modal-close-button"
@@ -120,6 +144,11 @@ const ListingDetailModal = ({ listing, onClose, currentUser }) => {
             <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/95 backdrop-blur-md text-slate-800 shadow-sm border border-slate-200/60">
               {listing.category}
             </span>
+            {isFree && (
+              <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-600 text-white shadow-md flex items-center gap-1 border border-emerald-500/50">
+                🎁 FREE FOR JUNIORS
+              </span>
+            )}
             <span
               className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide shadow-sm uppercase ${
                 listing.status === 'AVAILABLE'
@@ -177,9 +206,17 @@ const ListingDetailModal = ({ listing, onClose, currentUser }) => {
               <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-snug">
                 {listing.title}
               </h3>
-              <p className="text-2xl sm:text-3xl font-black text-emerald-700 mt-1">
-                {isFree ? 'FREE / DONATION' : `₹${listing.price.toLocaleString()}`}
-              </p>
+              <div className="mt-2">
+                {isFree ? (
+                  <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-emerald-50 text-emerald-800 font-black text-base sm:text-lg border border-emerald-300 shadow-sm">
+                    🎁 FREE FOR JUNIORS
+                  </span>
+                ) : (
+                  <p className="text-2xl sm:text-3xl font-black text-emerald-700">
+                    ₹{listing.price.toLocaleString()}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 max-h-32 overflow-y-auto">

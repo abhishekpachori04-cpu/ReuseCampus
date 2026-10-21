@@ -1,4 +1,5 @@
-import { Search, X, ArrowUpDown } from 'lucide-react';
+import React from 'react';
+import { Search, X, ArrowUpDown, Heart, Gift } from 'lucide-react';
 import {
   CATEGORY_FILTERS,
   CONDITION_FILTERS,
@@ -8,6 +9,7 @@ import {
 
 /**
  * Filter and search toolbar for marketplace listings
+ * Features Standout Free Donations & Wishlist Quick Filters
  */
 const ListingFilterBar = ({
   searchQuery,
@@ -20,6 +22,11 @@ const ListingFilterBar = ({
   onStatusChange,
   sortBy,
   onSortChange,
+  isFreeOnly = false,
+  onToggleFreeOnly,
+  isSavedOnly = false,
+  onToggleSavedOnly,
+  savedCount = 0,
 }) => {
   return (
     <div className="space-y-4">
@@ -38,7 +45,7 @@ const ListingFilterBar = ({
             type="button"
             onClick={() => onSearchChange('')}
             aria-label="Clear search query"
-            className="p-1.5 mr-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+            className="p-1.5 mr-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -112,15 +119,50 @@ const ListingFilterBar = ({
         </div>
       </div>
 
-      {/* Category Pills Slider */}
+      {/* Quick Filters & Category Pills Slider */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none pt-1">
+        {/* Quick Filter Pill: Standout Free Donations */}
+        <button
+          type="button"
+          onClick={() => onToggleFreeOnly && onToggleFreeOnly(!isFreeOnly)}
+          className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
+            isFreeOnly
+              ? 'bg-emerald-600 text-white shadow-md border border-emerald-600 ring-2 ring-emerald-500/30'
+              : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300'
+          }`}
+        >
+          <Gift className={`w-3.5 h-3.5 ${isFreeOnly ? 'text-white' : 'text-emerald-600'}`} />
+          <span>🎁 Free Donations</span>
+        </button>
+
+        {/* Quick Filter Pill: Wishlist / Saved Items */}
+        <button
+          type="button"
+          onClick={() => onToggleSavedOnly && onToggleSavedOnly(!isSavedOnly)}
+          className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
+            isSavedOnly
+              ? 'bg-rose-600 text-white shadow-md border border-rose-600 ring-2 ring-rose-500/30'
+              : 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 hover:border-rose-300'
+          }`}
+        >
+          <Heart
+            className={`w-3.5 h-3.5 ${
+              isSavedOnly ? 'fill-white text-white' : 'fill-rose-500 text-rose-500'
+            }`}
+          />
+          <span>❤️ Saved ({savedCount})</span>
+        </button>
+
+        <div className="h-5 w-px bg-slate-200 mx-1 shrink-0" />
+
+        {/* Categories */}
         {CATEGORY_FILTERS.map((cat) => (
           <button
             key={cat}
             type="button"
             onClick={() => onCategoryChange(cat)}
             className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-              selectedCategory === cat
+              selectedCategory === cat && !isFreeOnly && !isSavedOnly
                 ? 'bg-slate-900 text-white shadow-sm'
                 : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300 hover:bg-slate-50'
             }`}

@@ -13,6 +13,7 @@ import {
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useDebounce } from '../hooks/useDebounce';
+import useWishlist from '../hooks/useWishlist';
 import ListingCard from '../components/listings/ListingCard';
 import ListingDetailModal from '../components/listings/ListingDetailModal';
 import ListingFilterBar from '../components/listings/ListingFilterBar';
@@ -23,6 +24,8 @@ import ListingSkeleton from '../components/ui/ListingSkeleton';
  */
 const Home = () => {
   const { user } = useAuth();
+  const { savedIds, count: savedCount } = useWishlist();
+
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -39,6 +42,8 @@ const Home = () => {
   const [selectedCondition, setSelectedCondition] = useState('All');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
   const [sortBy, setSortBy] = useState('newest');
+  const [isFreeOnly, setIsFreeOnly] = useState(false);
+  const [isSavedOnly, setIsSavedOnly] = useState(false);
 
   // Debounced search to prevent excessive backend querying
   const debouncedSearch = useDebounce(searchQuery, 300);
@@ -55,6 +60,17 @@ const Home = () => {
       }
       setError('');
 
+      // If user toggled Saved items only and has none bookmarked yet, avoid network call
+      if (isSavedOnly && savedIds.length === 0) {
+        setListings([]);
+        setPage(1);
+        setHasMore(false);
+        setTotalCount(0);
+        setLoading(false);
+        setLoadingMore(false);
+        return;
+      }
+
       try {
         const params = {
           page: pageToFetch,
@@ -65,6 +81,8 @@ const Home = () => {
         if (selectedCondition !== 'All') params.condition = selectedCondition;
         if (selectedStatus) params.status = selectedStatus;
         if (sortBy) params.sort = sortBy;
+        if (isFreeOnly) params.isFree = true;
+        if (isSavedOnly && savedIds.length > 0) params.ids = savedIds.join(',');
 
         const res = await API.get('/listings', { params });
         if (res.data?.success && Array.isArray(res.data?.data)) {
@@ -90,7 +108,7 @@ const Home = () => {
         setLoadingMore(false);
       }
     },
-    [debouncedSearch, selectedCategory, selectedCondition, selectedStatus, sortBy]
+    [debouncedSearch, selectedCategory, selectedCondition, selectedStatus, sortBy, isFreeOnly, isSavedOnly, savedIds]
   );
 
   useEffect(() => {
@@ -175,7 +193,7 @@ const Home = () => {
           </p>
         </div>
 
-        {/* Modular Filter & Search Bar */}
+        {/* Modular Filter & Search Bar with Free & Wishlist Quick Toggles */}
         <ListingFilterBar
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -187,6 +205,11 @@ const Home = () => {
           onStatusChange={setSelectedStatus}
           sortBy={sortBy}
           onSortChange={setSortBy}
+          isFreeOnly={isFreeOnly}
+          onToggleFreeOnly={setIsFreeOnly}
+          isSavedOnly={isSavedOnly}
+          onToggleSavedOnly={setIsSavedOnly}
+          savedCount={savedCount}
         />
 
         {/* Error notification banner */}
@@ -208,18 +231,56 @@ const Home = () => {
             <div className="w-14 h-14 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto">
               <PackageOpen className="w-7 h-7" />
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-slate-800">No listings found</h3>
-              <p className="text-slate-500 text-sm max-w-sm mx-auto mt-1">
-                Try clearing your search query or choosing another category or condition filter.
-              </p>
-            </div>
-            <Link
-              to="/create"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-md shadow-emerald-600/20 transition-all"
-            >
-              Post an Item
-            </Link>
+            {isSavedOnly ? (
+              <div className="space-y-3">
+                <h3 className="text-lg font-bold text-slate-800">Your Saved Wishlist is Empty</h3>
+                <p className="text-slate-500 text-sm max-w-sm mx-auto">
+                  You haven't bookmarked any campus items yet. Tap the heart icon on any listing to save it here!
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsSavedOnly(false)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-md transition-all cursor-pointer"
+                >
+                  Browse Campus Marketplace
+                </button>
+              </div>
+            ) : isFreeOnly ? (
+              <div className="space-y-3">
+                <h3 className="text-lg font-bold text-slate-800">No Free Junior Donations Found</h3>
+                <p className="text-slate-500 text-sm max-w-sm mx-auto">
+                  No free items match your active filters. Try clearing your filters or donate an item to a junior!
+                </p>
+                <div className="flex flex-wrap justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsFreeOnly(false)}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all cursor-pointer"
+                  >
+                    Clear Free Filter
+                  </button>
+                  <Link
+                    to="/create"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 transition-all"
+                  >
+                    🎁 Donate an Item Free
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">No listings found</h3>
+                <p className="text-slate-500 text-sm max-w-sm mx-auto mt-1 mb-4">
+                  Try clearing your search query or choosing another category or condition filter.
+                </p>
+                <Link
+                  to="/create"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-md shadow-emerald-600/20 transition-all"
+                >
+                  Post an Item
+                </Link>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-8">
