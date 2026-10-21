@@ -24,6 +24,13 @@ export const registerUser = asyncHandler(async (req, res) => {
     });
   }
 
+  if (typeof email !== 'string' || typeof password !== 'string') {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid input format for email or password',
+    });
+  }
+
   if (confirmPassword && password !== confirmPassword) {
     return res.status(400).json({
       success: false,
@@ -91,6 +98,13 @@ export const loginUser = asyncHandler(async (req, res) => {
     return res.status(400).json({
       success: false,
       message: 'Please provide both college email and password',
+    });
+  }
+
+  if (typeof email !== 'string' || typeof password !== 'string') {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid input format for email or password',
     });
   }
 

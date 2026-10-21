@@ -12,11 +12,14 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
 // Application imports
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import listingRoutes from './routes/listingRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import { notFound, errorHandler } from './middlewares/errorMiddleware.js';
+import { globalApiLimiter } from './middlewares/rateLimiter.js';
+import sanitizeInput from './middlewares/sanitizeMiddleware.js';
 
 /**
  * Environment Variable Verification Check
@@ -41,6 +44,9 @@ verifyEnvironment();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// HTTP Security Headers (allows Base64 / cross-origin images to render cleanly)
+app.use(helmet({ crossOriginResourcePolicy: false }));
 
 // Connect to MongoDB Database
 if (process.env.MONGO_URI) {
@@ -79,6 +85,12 @@ app.use(
 // Body Parsing Middlewares (increased limit to 10mb for student device photo uploads)
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+// NoSQL Injection Protection Middleware (strips $ and . keys from body, query, and params)
+app.use(sanitizeInput);
+
+// Global API Rate Limiter (150 requests per 15 mins per IP on /api)
+app.use('/api', globalApiLimiter);
 
 // Health Check Endpoint (Deployment and uptime monitoring)
 app.get('/api/health', (req, res) => {

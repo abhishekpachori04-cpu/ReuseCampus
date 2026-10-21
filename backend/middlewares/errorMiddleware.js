@@ -8,14 +8,38 @@ export const notFound = (req, res, next) => {
 };
 
 /**
- * Global Error Handler Middleware
+ * Global Centralized Error Handler Middleware
+ * Normalizes Mongoose CastError, ValidationError, and duplicate key (11000) errors
+ * into structured JSON responses with appropriate HTTP 400/404 status codes.
  */
 export const errorHandler = (err, req, res, next) => {
-  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  let message = err.message || 'Internal Server Error';
+
+  // Handle Mongoose Bad ObjectId / CastError (e.g., /api/listings/invalid-id)
+  if (err.name === 'CastError') {
+    statusCode = 404;
+    message = `Resource not found with invalid identifier: ${err.value}`;
+  }
+
+  // Handle Mongoose Validation Errors
+  if (err.name === 'ValidationError') {
+    statusCode = 400;
+    message = Object.values(err.errors)
+      .map((item) => item.message)
+      .join(', ');
+  }
+
+  // Handle Mongoose Duplicate Key (E11000) Error
+  if (err.code === 11000) {
+    statusCode = 400;
+    const fields = Object.keys(err.keyValue || {}).join(', ');
+    message = `Duplicate value entered${fields ? ` for field '${fields}'` : ''}. Please choose another value.`;
+  }
 
   res.status(statusCode).json({
     success: false,
-    message: err.message || 'Internal Server Error',
-    stack: process.env.NODE_ENV === 'production' ? null : err.stack,
+    message,
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
   });
 };
