@@ -19,8 +19,9 @@ import assert from 'node:assert/strict';
 const { default: app } = await import('../server.js');
 const { isCollegeEmailValid } = await import('../models/User.js');
 const { sanitizeKeys } = await import('../middlewares/sanitizeMiddleware.js');
-const { CATEGORIES, CONDITIONS, STATUSES } = await import('../models/Listing.js');
+const { default: Listing, CATEGORIES, CONDITIONS, STATUSES } = await import('../models/Listing.js');
 const { protect } = await import('../middlewares/authMiddleware.js');
+const { isListingOwner } = await import('../controllers/listingController.js');
 
 describe('=== ReuseCampus Senior Engineering Automated Test Suite ===', () => {
 
@@ -43,6 +44,7 @@ describe('=== ReuseCampus Senior Engineering Automated Test Suite ===', () => {
     });
 
     it('should strictly reject commercial public email providers', () => {
+      assert.strictEqual(isCollegeEmailValid('user@gmail.com'), false);
       assert.strictEqual(isCollegeEmailValid('student@gmail.com'), false);
       assert.strictEqual(isCollegeEmailValid('hacker@yahoo.co.in'), false);
       assert.strictEqual(isCollegeEmailValid('scammer@outlook.com'), false);
@@ -157,6 +159,12 @@ describe('=== ReuseCampus Senior Engineering Automated Test Suite ===', () => {
       assert.strictEqual(freeDonationPrice >= 0, true);
       assert.strictEqual(freeDonationPrice === 0, true);
     });
+
+    it('should enforce 800,000 character maximum length on imageUrl in Listing schema', () => {
+      const imageField = Listing.schema.path('imageUrl');
+      assert.ok(imageField);
+      assert.strictEqual(imageField.options.maxlength[0], 800000);
+    });
   });
 
   describe('4. Authentication & Authorization Middleware Guard', () => {
@@ -211,6 +219,48 @@ describe('=== ReuseCampus Senior Engineering Automated Test Suite ===', () => {
       assert.strictEqual(nextCalled, false);
       assert.strictEqual(statusCode, 401);
       assert.strictEqual(jsonBody.success, false);
+    });
+
+    it('should reject malformed or tampered JWT bearer tokens with 401', async () => {
+      const req = { headers: { authorization: 'Bearer invalid.tampered.token' } };
+      let statusCode = null;
+      let jsonBody = null;
+
+      const res = {
+        status(code) {
+          statusCode = code;
+          return this;
+        },
+        json(data) {
+          jsonBody = data;
+          return this;
+        },
+      };
+
+      let nextCalled = false;
+      await protect(req, res, () => {
+        nextCalled = true;
+      });
+
+      assert.strictEqual(nextCalled, false);
+      assert.strictEqual(statusCode, 401);
+      assert.strictEqual(jsonBody.success, false);
+      assert.match(jsonBody.message, /token validation failed/i);
+    });
+
+    it('should correctly authorize listing owner and block unauthorized cross-user modifications (403 guard)', () => {
+      const ownerId = '654321000000000000000001';
+      const attackerId = '654321000000000000000002';
+
+      // Owner access authorized
+      assert.strictEqual(isListingOwner(ownerId, ownerId), true);
+
+      // Attacker blocked from modifying another student user's listing
+      assert.strictEqual(isListingOwner(ownerId, attackerId), false);
+
+      // Edge cases: missing/null IDs return false
+      assert.strictEqual(isListingOwner(null, ownerId), false);
+      assert.strictEqual(isListingOwner(ownerId, undefined), false);
     });
   });
 

@@ -3,6 +3,17 @@ import Listing, { CATEGORIES, CONDITIONS, STATUSES } from '../models/Listing.js'
 import asyncHandler from '../utils/asyncHandler.js';
 
 /**
+ * Helper to safely verify listing ownership between seller ID and requester ID
+ * @param {string|mongoose.Types.ObjectId} sellerId
+ * @param {string|mongoose.Types.ObjectId} userId
+ * @returns {boolean}
+ */
+export const isListingOwner = (sellerId, userId) => {
+  if (!sellerId || !userId) return false;
+  return sellerId.toString() === userId.toString();
+};
+
+/**
  * @desc    Fetch listings with keyword search, category, condition, price range, and sort
  * @route   GET /api/listings
  * @access  Public
@@ -67,14 +78,14 @@ export const getListings = asyncHandler(async (req, res) => {
     query.$or = [{ title: searchRegex }, { description: searchRegex }];
   }
 
-  // Sort order mapping
-  let sortCriteria = { createdAt: -1 };
+  // Sort order mapping with deterministic _id tie-breaker (ADR-006)
+  let sortCriteria = { createdAt: -1, _id: -1 };
   if (sort === 'price_asc') {
-    sortCriteria = { price: 1, createdAt: -1 };
+    sortCriteria = { price: 1, _id: -1 };
   } else if (sort === 'price_desc') {
-    sortCriteria = { price: -1, createdAt: -1 };
+    sortCriteria = { price: -1, _id: -1 };
   } else if (sort === 'newest') {
-    sortCriteria = { createdAt: -1 };
+    sortCriteria = { createdAt: -1, _id: -1 };
   }
 
   // Pagination parameters (default page 1, limit 8)
@@ -226,7 +237,7 @@ export const updateListing = asyncHandler(async (req, res) => {
   }
 
   // Ownership verification
-  if (listing.seller.toString() !== req.user._id.toString()) {
+  if (!isListingOwner(listing.seller, req.user._id)) {
     return res.status(403).json({
       success: false,
       message: 'Unauthorized: You can only edit your own listings',
@@ -333,7 +344,7 @@ export const deleteListing = asyncHandler(async (req, res) => {
     });
   }
 
-  if (listing.seller.toString() !== req.user._id.toString()) {
+  if (!isListingOwner(listing.seller, req.user._id)) {
     return res.status(403).json({
       success: false,
       message: 'Unauthorized: You can only delete your own listings',
@@ -371,7 +382,7 @@ export const markListingAsSold = asyncHandler(async (req, res) => {
     });
   }
 
-  if (listing.seller.toString() !== req.user._id.toString()) {
+  if (!isListingOwner(listing.seller, req.user._id)) {
     return res.status(403).json({
       success: false,
       message: 'Unauthorized: Only the listing owner can mark this item as sold',
@@ -419,7 +430,7 @@ export const updateListingStatus = asyncHandler(async (req, res) => {
     });
   }
 
-  if (listing.seller.toString() !== req.user._id.toString()) {
+  if (!isListingOwner(listing.seller, req.user._id)) {
     return res.status(403).json({
       success: false,
       message: 'Unauthorized: Only the listing owner can modify item status',

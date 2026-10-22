@@ -157,3 +157,26 @@ flowchart TD
     - 0 bytes added to `node_modules`.
     - Instant test startup (<700ms total execution time for 18 test cases).
     - Guaranteed compatibility across all Node CI/CD environments.
+
+---
+
+### ADR-006: Campus Gatekeeping via Institutional Domain Validation & Production Bounded Guardrails
+
+- **Status**: Accepted & Implemented (with Phase-2 Roadmap)
+- **Context & Problem**:
+  - Open marketplaces suffer from spam, non-student scalpers, and off-campus security hazards. Requiring immediate SMTP email sending during early campus pilot rollout incurs transactional email service fees (Resend, SendGrid), DNS MX/SPF/DKIM record verification delays on institutional domains, and delivers poor UX if campus email firewall filters incoming external automated emails.
+  - Furthermore, uncontrolled pagination or unbounded payload sizes could allow users to submit oversized Base64 payloads or stress MongoDB memory buffers.
+- **Decision**:
+  - **Campus Gatekeeping (Phase-1 MVP)**: Implement client and schema-level regex validation strictly locking registration to the institutional `@rjit.ac.in` domain (matching roll numbers, e.g., `0902cs241008@rjit.ac.in`). Public consumer domains (`@gmail.com`, `@yahoo.com`) are systematically rejected.
+  - **Phase-2 Upgrade Path**: A modular upgrade path is planned for Phase 2: integrating SMTP/Resend API for 6-digit one-time password (OTP) verification before activating user accounts, utilizing Redis for ephemeral OTP token storage.
+  - **Bounded Guardrails for MongoDB Performance**:
+    1. *Payload Length Cap*: Added `maxlength: 800000` (~800KB) on `Listing.imageUrl` schema to allow high-quality client-compressed images (~100KB) while strictly rejecting multi-megabyte payloads.
+    2. *Bounded Pagination & Tie-Breaker*: Enforced `limit: Math.min(100, ...)` and injected a secondary sort tie-breaker (`{ ..., _id: -1 }`) ensuring constant memory limits and 100% deterministic pagination across pages.
+    3. *`.lean()` Execution*: Combined with composite indexing to prevent Mongoose document hydration memory spikes.
+- **Trade-off Analysis**:
+  - *Trade-off*: Phase 1 relies on institutional domain pattern matching rather than active SMTP token dispatch.
+  - *Benefits*:
+    - Zero friction onboarding for RJIT campus students without external email API outages or spam quarantine delays.
+    - Zero cost, zero external API key dependencies.
+    - Guaranteed protection against database bloat, pagination drift, and memory exhaustion.
+

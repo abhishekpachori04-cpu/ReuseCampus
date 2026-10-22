@@ -56,6 +56,7 @@ const listingSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Please provide an image URL for the listing'],
       trim: true,
+      maxlength: [800000, 'Image payload is too large. Please upload a standard compressed image.'],
     },
     seller: {
       type: mongoose.Schema.Types.ObjectId,

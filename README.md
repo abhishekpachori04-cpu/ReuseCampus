@@ -3,13 +3,14 @@
 > **A Verified College-Specific Second-Hand Marketplace for Students**  
 > Empowering students at **Rustamji Institute of Technology (RJIT)** to buy, sell, donate, and pass down textbooks, calculators, lab gear, and hostel essentials safely within their verified campus community.
 
+[![CI Pipeline](https://github.com/abhishekpachori04-cpu/ReuseCampus/actions/workflows/ci.yml/badge.svg)](https://github.com/abhishekpachori04-cpu/ReuseCampus/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/Tests-Passed%20(100%25)-brightgreen?logo=node.js&logoColor=white)](#-automated-testing--code-quality)
 [![React](https://img.shields.io/badge/React-19.x-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-8.x-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4.x-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Express](https://img.shields.io/badge/Express-5.x-000000?logo=express&logoColor=white)](https://expressjs.com/)
 [![MongoDB Atlas](https://img.shields.io/badge/MongoDB_Atlas-Mongoose-47A248?logo=mongodb&logoColor=white)](https://www.mongodb.com/)
-[![Tests](https://img.shields.io/badge/Tests-18%20Passed%20(100%25)-brightgreen?logo=node.js&logoColor=white)](#-automated-testing--code-quality)
 [![JWT](https://img.shields.io/badge/Auth-JWT_Bearer-000000?logo=json-web-tokens&logoColor=white)](https://jwt.io/)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](LICENSE)
 
@@ -97,6 +98,12 @@ For exhaustive architecture diagrams and design rationale, see [ARCHITECTURE.md]
 * **Senior Decision**: 
   - Mandatory environment variables (`MONGO_URI`, `JWT_SECRET`) are validated synchronously during boot; the process halts immediately (`process.exit(1)`) if configuration is incomplete.
   - Added centralized graceful shutdown handlers (`SIGTERM`, `SIGINT`, `unhandledRejection`, `uncaughtException`) that stop incoming requests, drain active sockets within 10 seconds, and gracefully disconnect the Mongoose connection pool.
+
+### 5. ADR-005: Zero-Dependency Automated Testing via Native `node:test`
+* **Senior Decision**: Utilized Node's native test runner (`node:test`) and assertion library (`node:assert/strict`) — executing all unit, middleware, and live HTTP contract tests in <1 second with zero third-party dependencies added to `node_modules`.
+
+### 6. ADR-006: Institutional Domain Gatekeeping & Production Bounded Guardrails
+* **Senior Decision**: Phase-1 MVP strictly gatekeeps registration to verified RJIT student emails (`@rjit.ac.in`) with a planned Phase-2 upgrade path for SMTP/Resend 6-digit OTP dispatch. MongoDB performance is fortified with an 800,000 char cap on `imageUrl`, `.lean()` execution, and `{ ..., _id: -1 }` secondary sort tie-breakers for 100% deterministic pagination.
 
 ---
 
