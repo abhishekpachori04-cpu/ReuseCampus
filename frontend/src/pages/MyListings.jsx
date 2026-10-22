@@ -21,7 +21,7 @@ import {
   ArrowUpRight,
 } from 'lucide-react';
 import API from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import useAuth from '../context/useAuth';
 import { compressImageFile } from '../utils/imageCompressor';
 
 import { CATEGORIES, CONDITIONS } from '../constants/campusConstants';
@@ -63,7 +63,6 @@ const MyListings = () => {
         setListings([]);
       }
     } catch (error) {
-      console.error('Failed to fetch user listings:', error);
       setErrorMessage(
         error.response?.data?.message || 'Could not load your listings. Please refresh.'
       );
@@ -109,7 +108,6 @@ const MyListings = () => {
         );
       }
     } catch (error) {
-      console.error('Toggle status failed:', error);
       setErrorMessage(error.response?.data?.message || 'Could not update item status.');
     }
   };
@@ -141,7 +139,6 @@ const MyListings = () => {
       const compressedDataUrl = await compressImageFile(file, 900, 0.8);
       setEditingListing((prev) => ({ ...prev, imageUrl: compressedDataUrl }));
     } catch (err) {
-      console.error('Image compression error:', err);
       alert(err.message || 'Failed to process selected image file.');
     } finally {
       setCompressingImage(false);
@@ -154,16 +151,34 @@ const MyListings = () => {
     e.preventDefault();
     if (!editingListing) return;
 
-    setSavingEdit(true);
     setErrorMessage('');
+
+    const trimmedTitle = editingListing.title.trim();
+    const trimmedDesc = editingListing.description.trim();
+    const numPrice = Number(editingListing.price);
+
+    if (!trimmedTitle) {
+      setErrorMessage('Item title cannot be empty or whitespace only.');
+      return;
+    }
+    if (!trimmedDesc) {
+      setErrorMessage('Item description cannot be empty or whitespace only.');
+      return;
+    }
+    if (isNaN(numPrice) || numPrice < 0) {
+      setErrorMessage('Price cannot be negative. Set ₹0 for free giveaways.');
+      return;
+    }
+
+    setSavingEdit(true);
 
     try {
       const payload = {
-        title: editingListing.title.trim(),
-        price: Number(editingListing.price),
+        title: trimmedTitle,
+        price: numPrice,
         category: editingListing.category,
         condition: editingListing.condition,
-        description: editingListing.description.trim(),
+        description: trimmedDesc,
         imageUrl: editingListing.imageUrl.trim(),
         status: editingListing.status,
       };
@@ -178,7 +193,6 @@ const MyListings = () => {
         setEditingListing(null);
       }
     } catch (error) {
-      console.error('Failed to update listing:', error);
       setErrorMessage(
         error.response?.data?.message || 'Failed to update listing. Please check your inputs.'
       );
@@ -203,7 +217,6 @@ const MyListings = () => {
         setDeletingItem(null);
       }
     } catch (error) {
-      console.error('Delete listing failed:', error);
       setErrorMessage(
         error.response?.data?.message || 'Could not remove listing. Please try again.'
       );

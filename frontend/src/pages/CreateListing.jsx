@@ -14,7 +14,7 @@ import {
   Link as LinkIcon,
 } from 'lucide-react';
 import API from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import useAuth from '../context/useAuth';
 
 import { CATEGORIES, CONDITIONS } from '../constants/campusConstants';
 import { compressImageFile } from '../utils/imageCompressor';
@@ -112,8 +112,22 @@ const CreateListing = () => {
       return;
     }
 
-    if (!formData.imageUrl) {
-      setErrorMessage('Please upload a photo of your item or select a sample image.');
+    const trimmedTitle = formData.title.trim();
+    const trimmedDescription = formData.description.trim();
+    const numPrice = Number(formData.price);
+
+    if (!trimmedTitle) {
+      setErrorMessage('Please provide an item title (cannot be whitespace only).');
+      return;
+    }
+
+    if (!trimmedDescription) {
+      setErrorMessage('Please provide an item description.');
+      return;
+    }
+
+    if (isNaN(numPrice) || numPrice < 0) {
+      setErrorMessage('Price cannot be negative. Set ₹0 for free giveaways.');
       return;
     }
 
@@ -121,9 +135,9 @@ const CreateListing = () => {
 
     try {
       const payload = {
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        price: Number(formData.price),
+        title: trimmedTitle,
+        description: trimmedDescription,
+        price: numPrice,
         category: formData.category,
         condition: formData.condition,
         imageUrl: formData.imageUrl.trim(),
@@ -138,7 +152,6 @@ const CreateListing = () => {
         }, 1200);
       }
     } catch (error) {
-      console.error('Error creating listing:', error);
       const msg =
         error.response?.data?.message ||
         error.message ||

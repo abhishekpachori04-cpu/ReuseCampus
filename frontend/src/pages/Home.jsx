@@ -9,9 +9,10 @@ import {
   Loader2,
   PackageOpen,
   Search,
+  RotateCcw,
 } from 'lucide-react';
 import API from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import useAuth from '../context/useAuth';
 import { useDebounce } from '../hooks/useDebounce';
 import useWishlist from '../hooks/useWishlist';
 import ListingCard from '../components/listings/ListingCard';
@@ -100,8 +101,7 @@ const Home = () => {
           if (!isAppending) setListings([]);
           setHasMore(false);
         }
-      } catch (err) {
-        console.error('Failed to load listings:', err);
+      } catch {
         setError('Unable to load listings. Please check your network connection.');
       } finally {
         setLoading(false);
@@ -119,6 +119,16 @@ const Home = () => {
     if (!loadingMore && hasMore) {
       fetchListings(page + 1, true);
     }
+  };
+
+  const handleResetAllFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory('All');
+    setSelectedCondition('All');
+    setSelectedStatus('ALL');
+    setSortBy('newest');
+    setIsFreeOnly(false);
+    setIsSavedOnly(false);
   };
 
   return (
@@ -237,27 +247,31 @@ const Home = () => {
                 <p className="text-slate-500 text-sm max-w-sm mx-auto">
                   You haven't bookmarked any campus items yet. Tap the heart icon on any listing to save it here!
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setIsSavedOnly(false)}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-md transition-all cursor-pointer"
-                >
-                  Browse Campus Marketplace
-                </button>
+                <div className="flex flex-wrap justify-center gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleResetAllFilters}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-md transition-all cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    Reset All Filters & Browse Marketplace
+                  </button>
+                </div>
               </div>
             ) : isFreeOnly ? (
               <div className="space-y-3">
                 <h3 className="text-lg font-bold text-slate-800">No Free Junior Donations Found</h3>
                 <p className="text-slate-500 text-sm max-w-sm mx-auto">
-                  No free items match your active filters. Try clearing your filters or donate an item to a junior!
+                  No free items match your active filters. Try resetting your filters or donate an item to a junior!
                 </p>
-                <div className="flex flex-wrap justify-center gap-3">
+                <div className="flex flex-wrap justify-center gap-3 pt-1">
                   <button
                     type="button"
-                    onClick={() => setIsFreeOnly(false)}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all cursor-pointer"
+                    onClick={handleResetAllFilters}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all cursor-pointer border border-slate-200"
                   >
-                    Clear Free Filter
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    Reset All Filters
                   </button>
                   <Link
                     to="/create"
@@ -268,17 +282,27 @@ const Home = () => {
                 </div>
               </div>
             ) : (
-              <div>
-                <h3 className="text-lg font-bold text-slate-800">No listings found</h3>
-                <p className="text-slate-500 text-sm max-w-sm mx-auto mt-1 mb-4">
-                  Try clearing your search query or choosing another category or condition filter.
+              <div className="space-y-3">
+                <h3 className="text-lg font-bold text-slate-800">No campus listings match your criteria</h3>
+                <p className="text-slate-500 text-sm max-w-sm mx-auto">
+                  Try clearing your search query or resetting your category and condition filters.
                 </p>
-                <Link
-                  to="/create"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-md shadow-emerald-600/20 transition-all"
-                >
-                  Post an Item
-                </Link>
+                <div className="flex flex-wrap justify-center gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleResetAllFilters}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-md transition-all cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    Reset All Filters
+                  </button>
+                  <Link
+                    to="/create"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 transition-all"
+                  >
+                    Post an Item
+                  </Link>
+                </div>
               </div>
             )}
           </div>

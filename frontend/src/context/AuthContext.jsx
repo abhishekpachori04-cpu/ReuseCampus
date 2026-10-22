@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import API from '../services/api';
-
-const AuthContext = createContext(null);
+import { AuthContext } from './authContextInstance';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -20,8 +19,7 @@ export const AuthProvider = ({ children }) => {
           } else {
             setUser(null);
           }
-        } catch (error) {
-          console.error('Session expired or invalid token:', error);
+        } catch {
           localStorage.removeItem('reusecampus_token');
           setUser(null);
         }
@@ -30,6 +28,15 @@ export const AuthProvider = ({ children }) => {
     };
 
     checkAuthStatus();
+
+    const handleAuthExpired = () => {
+      setUser(null);
+    };
+
+    window.addEventListener('reusecampus-auth-expired', handleAuthExpired);
+    return () => {
+      window.removeEventListener('reusecampus-auth-expired', handleAuthExpired);
+    };
   }, []);
 
   // Login handler accepting user data and JWT token
@@ -103,11 +110,5 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+export default AuthProvider;
 

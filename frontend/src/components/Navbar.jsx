@@ -19,7 +19,7 @@ import {
   AlertCircle,
   CheckCircle2,
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import useAuth from '../context/useAuth';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -35,9 +35,9 @@ const Navbar = () => {
   const [profileSuccess, setProfileSuccess] = useState('');
   const [profileError, setProfileError] = useState('');
 
-  // Sync profile fields whenever modal opens or user updates
+  // Sync profile fields when modal opens
   useEffect(() => {
-    if (user) {
+    if (user && isProfileOpen) {
       setProfileName(user.name || '');
       setProfilePhone(user.phone || '');
     }
@@ -54,15 +54,33 @@ const Navbar = () => {
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
-    setIsUpdating(true);
     setProfileSuccess('');
     setProfileError('');
+
+    const trimmedName = profileName.trim();
+    if (!trimmedName) {
+      setProfileError('Please enter your full name (cannot be empty).');
+      return;
+    }
+
+    const trimmedPhone = profilePhone.trim();
+    if (trimmedPhone) {
+      const phoneRegex = /^(?:(?:\+|0{0,2})91[\s-]?)?[6789]\d{9}$/;
+      if (!phoneRegex.test(trimmedPhone)) {
+        setProfileError(
+          'Please enter a valid 10-digit Indian phone number (e.g., +91 98765 43210 or 9876543210).'
+        );
+        return;
+      }
+    }
+
+    setIsUpdating(true);
 
     try {
       if (updateProfile) {
         await updateProfile({
-          name: profileName.trim(),
-          phone: profilePhone.trim(),
+          name: trimmedName,
+          phone: trimmedPhone,
         });
       }
       setProfileSuccess('Campus profile updated successfully!');
@@ -70,7 +88,6 @@ const Navbar = () => {
         setProfileSuccess('');
       }, 3000);
     } catch (err) {
-      console.error('Failed to update profile:', err);
       setProfileError(
         err.response?.data?.message || err.message || 'Could not update profile. Please try again.'
       );

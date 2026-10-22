@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { LogIn, Mail, Lock, GraduationCap, AlertCircle, Loader2 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import useAuth from '../context/useAuth';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -26,12 +26,11 @@ const Login = () => {
     setErrorMessage('');
 
     try {
-      await loginUser(formData.email, formData.password);
+      await loginUser(formData.email.trim(), formData.password);
       // Redirect to the page they were trying to visit, or home
       const destination = location.state?.from?.pathname || '/';
       navigate(destination, { replace: true });
     } catch (error) {
-      console.error('Login error:', error);
       const msg =
         error.response?.data?.message ||
         error.message ||

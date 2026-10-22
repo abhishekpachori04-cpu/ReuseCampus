@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { UserPlus, Mail, Lock, User, Building, Phone, AlertCircle, Loader2 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import useAuth from '../context/useAuth';
 import { COLLEGES, DEFAULT_COLLEGE } from '../constants/campusConstants';
 
 const Register = () => {
@@ -28,11 +28,26 @@ const Register = () => {
     e.preventDefault();
     setErrorMessage('');
 
+    const trimmedName = formData.name.trim();
+    if (!trimmedName) {
+      setErrorMessage('Please provide your full name.');
+      return;
+    }
+
     // Strict frontend validation for RJIT official email
     const trimmedEmail = formData.email.trim().toLowerCase();
     if (!trimmedEmail.endsWith('@rjit.ac.in')) {
       setErrorMessage('Please use your official RJIT college email ending with @rjit.ac.in');
       return;
+    }
+
+    const trimmedPhone = formData.phone.trim();
+    if (trimmedPhone) {
+      const phoneRegex = /^(?:(?:\+|0{0,2})91[\s-]?)?[6789]\d{9}$/;
+      if (!phoneRegex.test(trimmedPhone)) {
+        setErrorMessage('Please provide a valid 10-digit Indian mobile number (e.g., +91 98765 43210 or 9876543210).');
+        return;
+      }
     }
 
     if (formData.password !== formData.confirmPassword) {
@@ -50,11 +65,12 @@ const Register = () => {
     try {
       await registerUser({
         ...formData,
+        name: trimmedName,
         email: trimmedEmail,
+        phone: trimmedPhone,
       });
       navigate('/');
     } catch (error) {
-      console.error('Registration error:', error);
       const msg =
         error.response?.data?.message ||
         error.message ||

@@ -147,10 +147,14 @@ export const getListingById = asyncHandler(async (req, res) => {
 export const createListing = asyncHandler(async (req, res) => {
   const { title, description, price, category, condition, imageUrl } = req.body;
 
-  if (!title || !description || price === undefined || !category || !condition || !imageUrl) {
+  const trimmedTitle = typeof title === 'string' ? title.trim() : '';
+  const trimmedDesc = typeof description === 'string' ? description.trim() : '';
+  const trimmedImage = typeof imageUrl === 'string' ? imageUrl.trim() : '';
+
+  if (!trimmedTitle || !trimmedDesc || price === undefined || !category || !condition || !trimmedImage) {
     return res.status(400).json({
       success: false,
-      message: 'Please provide all required fields (title, description, price, category, condition, imageUrl)',
+      message: 'Please provide all required fields without empty whitespace (title, description, price, category, condition, imageUrl)',
     });
   }
 
@@ -172,17 +176,17 @@ export const createListing = asyncHandler(async (req, res) => {
   if (isNaN(numPrice) || numPrice < 0) {
     return res.status(400).json({
       success: false,
-      message: 'Price must be a valid non-negative number',
+      message: 'Price must be a valid non-negative number (min: 0)',
     });
   }
 
   const listing = await Listing.create({
-    title: title.trim(),
-    description: description.trim(),
+    title: trimmedTitle,
+    description: trimmedDesc,
     price: numPrice,
     category,
     condition,
-    imageUrl: imageUrl.trim(),
+    imageUrl: trimmedImage,
     seller: req.user._id,
     status: 'AVAILABLE',
   });
@@ -257,17 +261,44 @@ export const updateListing = asyncHandler(async (req, res) => {
     if (isNaN(numPrice) || numPrice < 0) {
       return res.status(400).json({
         success: false,
-        message: 'Price must be a valid non-negative number',
+        message: 'Price must be a valid non-negative number (min: 0)',
       });
     }
     listing.price = numPrice;
   }
 
-  if (title) listing.title = title.trim();
-  if (description) listing.description = description.trim();
+  if (title !== undefined) {
+    if (typeof title !== 'string' || !title.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title cannot be blank or whitespace only',
+      });
+    }
+    listing.title = title.trim();
+  }
+
+  if (description !== undefined) {
+    if (typeof description !== 'string' || !description.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Description cannot be blank or whitespace only',
+      });
+    }
+    listing.description = description.trim();
+  }
+
+  if (imageUrl !== undefined) {
+    if (typeof imageUrl !== 'string' || !imageUrl.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Image URL cannot be blank',
+      });
+    }
+    listing.imageUrl = imageUrl.trim();
+  }
+
   if (category) listing.category = category;
   if (condition) listing.condition = condition;
-  if (imageUrl) listing.imageUrl = imageUrl.trim();
   if (status) listing.status = status;
 
   const updatedListing = await listing.save();

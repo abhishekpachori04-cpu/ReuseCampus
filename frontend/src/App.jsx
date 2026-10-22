@@ -9,6 +9,8 @@ import MyListings from './pages/MyListings';
 import NotFound from './pages/NotFound';
 import { AuthProvider } from './context/AuthContext';
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 function App() {
   return (
     <AuthProvider>
@@ -31,7 +33,7 @@ function App() {
 
           {/* Footer */}
           <footer className="border-t border-slate-200 bg-white py-6 text-center text-xs text-slate-500">
-            <p>© {new Date().getFullYear()} ReuseCampus. Built for sustainable campus living.</p>
+            <p>© {CURRENT_YEAR} ReuseCampus. Built for sustainable campus living.</p>
           </footer>
         </div>
       </Router>
