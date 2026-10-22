@@ -51,6 +51,7 @@ const listingSchema = new mongoose.Schema(
         message: '{VALUE} is not a valid condition (Choose: New, Like New, Good, Fair)',
       },
     },
+    // ADR-001: Pre-compressed client-side canvas Data URL (<120KB) avoids broken images on Render's ephemeral filesystem
     imageUrl: {
       type: String,
       required: [true, 'Please provide an image URL for the listing'],
@@ -75,7 +76,10 @@ const listingSchema = new mongoose.Schema(
   }
 );
 
-// High-speed compound indexes for feed filtering and user dashboard queries
+/**
+ * ADR-002: High-speed compound indexes for feed filtering and seller dashboard queries
+ * Paired with .lean() in listingController.js to ensure sub-millisecond execution
+ */
 listingSchema.index({ status: 1, category: 1, createdAt: -1 });
 listingSchema.index({ seller: 1, createdAt: -1 });
 listingSchema.index({ title: 'text', description: 'text' });

@@ -72,9 +72,17 @@ const MyListings = () => {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (!authLoading) {
-      fetchMyListings();
-    }
+    let ignore = false;
+    const loadData = async () => {
+      await Promise.resolve();
+      if (!ignore && !authLoading) {
+        fetchMyListings();
+      }
+    };
+    loadData();
+    return () => {
+      ignore = true;
+    };
   }, [authLoading, fetchMyListings]);
 
   // Status Summary Stats

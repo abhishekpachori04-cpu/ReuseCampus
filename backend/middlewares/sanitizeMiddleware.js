@@ -1,8 +1,8 @@
 /**
- * NoSQL Injection Protection Middleware
+ * Architectural Standard (ADR-003: Custom In-House NoSQL Query Sanitizer)
  * Strips object keys containing '$' or '.' from req.body, req.query, and req.params.
- * This prevents MongoDB operator injection while preserving string values like emails,
- * passwords, and Base64 encoded images.
+ * This prevents MongoDB operator injection without third-party prototype pollution vulnerabilities,
+ * while safely preserving legitimate string values like emails, passwords, and Base64 images.
  */
 
 export const sanitizeKeys = (obj) => {

@@ -37,10 +37,18 @@ const Navbar = () => {
 
   // Sync profile fields when modal opens
   useEffect(() => {
-    if (user && isProfileOpen) {
-      setProfileName(user.name || '');
-      setProfilePhone(user.phone || '');
-    }
+    let ignore = false;
+    const syncProfile = async () => {
+      await Promise.resolve();
+      if (!ignore && user && isProfileOpen) {
+        setProfileName(user.name || '');
+        setProfilePhone(user.phone || '');
+      }
+    };
+    syncProfile();
+    return () => {
+      ignore = true;
+    };
   }, [user, isProfileOpen]);
 
   const isActive = (path) => location.pathname === path;

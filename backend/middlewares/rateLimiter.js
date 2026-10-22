@@ -1,8 +1,8 @@
 import rateLimit from 'express-rate-limit';
 
 /**
- * Global API rate limiter:
- * Limits each IP to 150 requests per 15-minute window on all `/api` endpoints.
+ * Architectural Standard (ADR-003: Dual-Tier Rate Limiting - Global Tier)
+ * Limits each IP to 150 requests per 15-minute window across all `/api` endpoints.
  */
 export const globalApiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -16,7 +16,7 @@ export const globalApiLimiter = rateLimit({
 });
 
 /**
- * Strict Authentication rate limiter:
+ * Architectural Standard (ADR-003: Dual-Tier Rate Limiting - Strict Auth Tier)
  * Limits each IP to 15 requests per 15-minute window on sensitive authentication endpoints
  * (such as /api/auth/login and /api/auth/register) to prevent brute-force attacks.
  */

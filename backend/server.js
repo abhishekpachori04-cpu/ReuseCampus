@@ -17,30 +17,35 @@ import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import listingRoutes from './routes/listingRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import mongoose from 'mongoose';
 import { notFound, errorHandler } from './middlewares/errorMiddleware.js';
 import { globalApiLimiter } from './middlewares/rateLimiter.js';
 import sanitizeInput from './middlewares/sanitizeMiddleware.js';
 
 /**
- * Environment Variable Verification Check
+ * Architectural Standard (ADR-004: Fail-Fast Environment Validation)
+ * Checks for mandatory production environment variables before booting.
+ * Throws and exits immediately with code 1 if critical configuration is missing,
+ * avoiding corrupt, partially-booted, or insecure runtime states.
  */
-const verifyEnvironment = () => {
+const validateEnvironment = () => {
   const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET'];
   const missing = requiredEnvVars.filter((key) => !process.env[key]);
 
   if (missing.length > 0) {
-    console.warn(
-      `[Warning] Missing critical environment variables: ${missing.join(', ')}.`
-    );
-    console.warn(
-      'Make sure to create a .env file inside backend directory based on .env.example.'
-    );
+    if (process.env.NODE_ENV === 'test') {
+      console.warn(`[Environment] Test runner active. Missing non-test env vars: ${missing.join(', ')}`);
+      return;
+    }
+    console.error(`[FATAL] Missing mandatory environment variables: ${missing.join(', ')}`);
+    console.error('[FATAL] Please configure your .env file using backend/.env.example as a template.');
+    process.exit(1);
   } else {
-    console.log('[Environment] Critical environment variables loaded successfully.');
+    console.log('[Environment] All mandatory environment variables validated successfully.');
   }
 };
 
-verifyEnvironment();
+validateEnvironment();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -48,11 +53,13 @@ const PORT = process.env.PORT || 5000;
 // HTTP Security Headers (allows Base64 / cross-origin images to render cleanly)
 app.use(helmet({ crossOriginResourcePolicy: false }));
 
-// Connect to MongoDB Database
-if (process.env.MONGO_URI) {
-  connectDB();
-} else {
-  console.log('[Database] MONGO_URI not set yet. Skipping initial MongoDB connection.');
+// Connect to MongoDB Database (bypassed in test environment for deterministic headless unit tests)
+if (process.env.NODE_ENV !== 'test') {
+  if (process.env.MONGO_URI) {
+    connectDB();
+  } else {
+    console.log('[Database] MONGO_URI not set. Skipping initial MongoDB connection.');
+  }
 }
 
 // CORS Configuration (supporting local development and dynamic production URLs via CLIENT_URL)
@@ -112,11 +119,73 @@ app.use('/api/users', userRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
-// Start Server (only if not imported by test suites)
+// Server instance reference for graceful connection termination
+let server = null;
+
+// Start Server (only if not imported by automated test runners)
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
+  server = app.listen(PORT, () => {
     console.log(`[ReuseCampus Server] Running on http://localhost:${PORT}`);
   });
 }
 
+/**
+ * Graceful Shutdown Handler
+ * Intercepts termination signals (SIGTERM, SIGINT) and unhandled rejections:
+ * 1. Closes HTTP server to stop accepting new client requests.
+ * 2. Drains active in-flight requests cleanly within a 10s deadline.
+ * 3. Gracefully closes the MongoDB Mongoose connection pool to prevent socket leaks.
+ */
+export const handleGracefulShutdown = (signal, exitCode = 0) => {
+  console.log(`[Process] Received ${signal}. Initiating graceful shutdown sequence...`);
+
+  // Force exit fallback timer in case connection draining hangs
+  const forceExitTimer = setTimeout(() => {
+    console.error('[Process] Graceful shutdown deadline exceeded (10s). Forcing process exit.');
+    process.exit(1);
+  }, 10000);
+
+  if (forceExitTimer.unref) forceExitTimer.unref();
+
+  const closeDatabase = async () => {
+    try {
+      if (mongoose.connection && mongoose.connection.readyState !== 0) {
+        await mongoose.connection.close(false);
+        console.log('[Database] Mongoose connection pool closed successfully.');
+      }
+    } catch (err) {
+      console.error('[Database Error] Error during MongoDB disconnection:', err.message);
+    }
+  };
+
+  if (server) {
+    server.close(async () => {
+      console.log('[HTTP Server] Closed all active client connections.');
+      await closeDatabase();
+      clearTimeout(forceExitTimer);
+      console.log('[Process] Graceful shutdown completed cleanly. Bye!');
+      process.exit(exitCode);
+    });
+  } else {
+    closeDatabase().finally(() => {
+      clearTimeout(forceExitTimer);
+      process.exit(exitCode);
+    });
+  }
+};
+
+process.on('SIGTERM', () => handleGracefulShutdown('SIGTERM', 0));
+process.on('SIGINT', () => handleGracefulShutdown('SIGINT', 0));
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Process] Unhandled Promise Rejection at:', promise, 'reason:', reason);
+  handleGracefulShutdown('unhandledRejection', 1);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('[Process] Uncaught Exception thrown:', error);
+  handleGracefulShutdown('uncaughtException', 1);
+});
+
+export { app, server };
 export default app;

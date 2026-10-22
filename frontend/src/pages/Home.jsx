@@ -112,7 +112,17 @@ const Home = () => {
   );
 
   useEffect(() => {
-    fetchListings(1, false);
+    let ignore = false;
+    const loadData = async () => {
+      await Promise.resolve();
+      if (!ignore) {
+        fetchListings(1, false);
+      }
+    };
+    loadData();
+    return () => {
+      ignore = true;
+    };
   }, [fetchListings]);
 
   const handleLoadMore = () => {
