@@ -5,13 +5,13 @@ import React from 'react';
  */
 const ListingSkeleton = () => {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col animate-pulse">
-      {/* Image Skeleton */}
-      <div className="relative h-48 w-full bg-slate-200">
+    <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm flex flex-col animate-pulse">
+      {/* Image Skeleton with aspect-[4/3] */}
+      <div className="relative aspect-[4/3] w-full bg-slate-200">
         {/* Floating Category Badge Skeleton */}
         <div className="absolute top-2.5 left-2.5 w-16 h-5 rounded-full bg-slate-300" />
-        {/* Floating Status Badge Skeleton */}
-        <div className="absolute top-2.5 right-2.5 w-20 h-5 rounded-full bg-slate-300" />
+        {/* Floating Heart Skeleton */}
+        <div className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-slate-300" />
       </div>
 
       {/* Details Skeleton */}
@@ -33,18 +33,18 @@ const ListingSkeleton = () => {
           </div>
         </div>
 
-        {/* Pricing & Footer Actions */}
-        <div className="pt-3 border-t border-slate-100 space-y-2.5">
-          <div className="flex items-center justify-between">
-            <div className="h-6 w-20 rounded bg-slate-200" />
-            <div className="h-7 w-24 rounded-xl bg-slate-200" />
-          </div>
+        {/* Pricing Area */}
+        <div className="pt-2">
+          <div className="h-7 w-28 rounded-lg bg-slate-200" />
+        </div>
 
-          {/* Seller College Line */}
-          <div className="flex items-center gap-2 pt-0.5">
-            <div className="w-3.5 h-3.5 rounded-full bg-slate-200 shrink-0" />
-            <div className="h-3 w-1/2 rounded bg-slate-100" />
+        {/* Card Footer Skeleton */}
+        <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full bg-slate-200 shrink-0" />
+            <div className="h-3.5 w-24 rounded bg-slate-200" />
           </div>
+          <div className="h-3.5 w-12 rounded bg-slate-200" />
         </div>
       </div>
     </div>

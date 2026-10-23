@@ -104,63 +104,72 @@ const Navbar = () => {
     }
   };
 
-  const navLinks = [
-    { name: 'Home', path: '/', icon: Home },
-    { name: 'Post Item', path: '/create', icon: PlusCircle, highlight: true },
-    ...(isAuthenticated ? [{ name: 'My Listings', path: '/my-listings', icon: Package }] : []),
-  ];
-
   return (
     <>
-      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200">
+      <nav className="sticky top-0 z-40 backdrop-blur-xl bg-white/80 border-b border-slate-200/70 shadow-[0_1px_3px_rgba(15,23,42,0.03)] transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-16 sm:h-18">
             {/* Logo */}
             <Link
               to="/"
-              className="flex items-center gap-2.5 group transition-transform active:scale-95"
+              className="flex items-center gap-3 group transition-transform active:scale-95"
             >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 group-hover:shadow-emerald-500/35 transition-all">
-                <GraduationCap className="w-6 h-6" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white shadow-md shadow-emerald-500/20 flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:shadow-emerald-500/35">
+                <GraduationCap className="w-5 h-5 text-white" />
               </div>
-              <div className="flex flex-col">
+              <div className="flex items-center gap-1.5">
                 <span className="font-extrabold text-xl tracking-tight text-slate-900 group-hover:text-emerald-700 transition-colors">
                   Reuse<span className="text-emerald-600">Campus</span>
                 </span>
-                <span className="text-[10px] tracking-wider font-semibold text-slate-400 uppercase -mt-1">
-                  Student Marketplace
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200/60 uppercase tracking-wider">
+                  RJIT
                 </span>
               </div>
             </Link>
 
             {/* Desktop Navigation Links */}
-            <div className="hidden md:flex items-center gap-1.5">
-              {navLinks.map((link) => {
-                const Icon = link.icon;
-                return (
-                  <Link
-                    key={link.path}
-                    to={link.path}
-                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
-                      link.highlight
-                        ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm shadow-emerald-600/30 ml-2'
-                        : isActive(link.path)
-                        ? 'bg-emerald-50 text-emerald-700 font-semibold'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {link.name}
-                  </Link>
-                );
-              })}
+            <div className="hidden md:flex items-center gap-2">
+              <Link
+                to="/"
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                  isActive('/')
+                    ? 'bg-slate-100 text-slate-900 shadow-inner'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                }`}
+              >
+                <Home className="w-4 h-4" />
+                Home
+              </Link>
+
+              {isAuthenticated && (
+                <Link
+                  to="/my-listings"
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                    isActive('/my-listings')
+                      ? 'bg-slate-100 text-slate-900 shadow-inner'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                  }`}
+                >
+                  <Package className="w-4 h-4" />
+                  My Listings
+                </Link>
+              )}
+
+              {/* Sell / Donate Item CTA Button */}
+              <Link
+                to="/create"
+                className="ml-1 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-sm font-semibold shadow-sm shadow-emerald-500/20 hover:shadow-md transition-all duration-200 active:scale-95"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>Sell / Donate Item</span>
+              </Link>
             </div>
 
             {/* Desktop Auth Links */}
-            <div className="hidden md:flex items-center gap-3 pl-4 border-l border-slate-200">
+            <div className="hidden md:flex items-center gap-3 pl-3 border-l border-slate-200/80">
               {isAuthenticated ? (
-                <div className="flex items-center gap-3">
-                  {/* Clickable Profile Chip to Open Profile Modal */}
+                <div className="flex items-center gap-2.5">
+                  {/* Verified Student ID Badge Chip */}
                   <button
                     type="button"
                     onClick={() => {
@@ -168,17 +177,20 @@ const Navbar = () => {
                       setProfileSuccess('');
                       setIsProfileOpen(true);
                     }}
-                    className="flex items-center gap-2.5 px-3 py-1.5 bg-slate-100 hover:bg-emerald-50/80 rounded-xl transition-all cursor-pointer group text-left border border-slate-200/80 hover:border-emerald-300"
-                    title="Click to view and edit your Campus Profile"
+                    className="flex items-center gap-2.5 px-3 py-1.5 bg-slate-50 hover:bg-emerald-50/60 rounded-xl transition-all cursor-pointer group text-left border border-slate-200/90 hover:border-emerald-300 shadow-sm"
+                    title="Click to view and edit your Campus Student ID"
                   >
-                    <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs group-hover:scale-105 transition-transform">
-                      {user?.name ? user.name.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center font-bold text-xs shadow-sm group-hover:scale-105 transition-transform">
+                      {user?.name ? user.name.charAt(0).toUpperCase() : <User className="w-3.5 h-3.5" />}
                     </div>
                     <div className="flex flex-col text-left">
-                      <span className="text-xs font-bold text-slate-800 leading-tight group-hover:text-emerald-700 transition-colors">
-                        {user?.name || 'Campus Student'}
-                      </span>
-                      <span className="text-[10px] text-emerald-700 font-medium leading-tight truncate max-w-[120px]">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-bold text-slate-800 leading-tight group-hover:text-emerald-700 transition-colors">
+                          {user?.name || 'Campus Student'}
+                        </span>
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                      </div>
+                      <span className="text-[10px] text-slate-500 font-medium leading-tight truncate max-w-[120px]">
                         {user?.college || user?.email}
                       </span>
                     </div>
@@ -188,19 +200,19 @@ const Navbar = () => {
                     onClick={handleLogout}
                     type="button"
                     title="Sign Out"
-                    className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
                   >
                     <LogOut className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
-                <>
+                <div className="flex items-center gap-2">
                   <Link
                     to="/login"
-                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors ${
                       isActive('/login')
-                        ? 'bg-slate-100 text-slate-900 font-semibold'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                        ? 'bg-slate-100 text-slate-900'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
                     }`}
                   >
                     <LogIn className="w-4 h-4" />
@@ -208,12 +220,12 @@ const Navbar = () => {
                   </Link>
                   <Link
                     to="/register"
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-slate-800 bg-slate-100 hover:bg-slate-200 transition-colors"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-slate-900 bg-emerald-400/20 hover:bg-emerald-400/30 border border-emerald-500/30 transition-all active:scale-95"
                   >
-                    <UserPlus className="w-4 h-4" />
+                    <UserPlus className="w-4 h-4 text-emerald-700" />
                     Sign Up
                   </Link>
-                </>
+                </div>
               )}
             </div>
 
@@ -222,7 +234,7 @@ const Navbar = () => {
               <button
                 onClick={() => setIsOpen(!isOpen)}
                 type="button"
-                className="p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none"
+                className="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none cursor-pointer"
                 aria-label="Toggle Navigation"
               >
                 {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -233,7 +245,7 @@ const Navbar = () => {
 
         {/* Mobile Menu Dropdown */}
         {isOpen && (
-          <div className="md:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-5 space-y-1 shadow-lg">
+          <div className="md:hidden border-t border-slate-200/80 bg-white/95 backdrop-blur-xl px-4 pt-3 pb-5 space-y-2 shadow-xl">
             {isAuthenticated && (
               <button
                 type="button"
@@ -243,48 +255,67 @@ const Navbar = () => {
                   setProfileSuccess('');
                   setIsProfileOpen(true);
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2.5 mb-2 bg-slate-50 hover:bg-emerald-50 rounded-xl transition-colors text-left border border-slate-200/60 cursor-pointer"
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 mb-2 bg-slate-50 hover:bg-emerald-50/60 rounded-2xl transition-colors text-left border border-slate-200 cursor-pointer"
               >
-                <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-sm">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
                   {user?.name ? user.name.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
                 </div>
                 <div className="flex flex-col text-left">
-                  <span className="text-sm font-bold text-slate-800 leading-tight">
-                    {user?.name}
-                  </span>
-                  <span className="text-xs text-emerald-700 font-medium leading-tight">
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-bold text-slate-800 leading-tight">
+                      {user?.name}
+                    </span>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  </div>
+                  <span className="text-xs text-slate-500 font-medium leading-tight truncate">
                     {user?.college || user?.email}
                   </span>
                 </div>
               </button>
             )}
 
-            {navLinks.map((link) => {
-              const Icon = link.icon;
-              return (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  onClick={() => setIsOpen(false)}
-                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-base font-medium ${
-                    link.highlight
-                      ? 'bg-emerald-600 text-white'
-                      : isActive(link.path)
-                      ? 'bg-emerald-50 text-emerald-700 font-semibold'
-                      : 'text-slate-700 hover:bg-slate-100'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  {link.name}
-                </Link>
-              );
-            })}
+            <Link
+              to="/"
+              onClick={() => setIsOpen(false)}
+              className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold ${
+                isActive('/')
+                  ? 'bg-slate-100 text-slate-900'
+                  : 'text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <Home className="w-4 h-4" />
+              Home
+            </Link>
+
+            <Link
+              to="/create"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm shadow-emerald-600/20"
+            >
+              <PlusCircle className="w-4 h-4 text-emerald-100" />
+              Sell / Donate Item
+            </Link>
+
+            {isAuthenticated && (
+              <Link
+                to="/my-listings"
+                onClick={() => setIsOpen(false)}
+                className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold ${
+                  isActive('/my-listings')
+                    ? 'bg-slate-100 text-slate-900'
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <Package className="w-4 h-4" />
+                My Listings
+              </Link>
+            )}
 
             <div className="pt-3 mt-2 border-t border-slate-100">
               {isAuthenticated ? (
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-rose-600 bg-rose-50 rounded-lg hover:bg-rose-100 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-semibold text-rose-600 bg-rose-50 rounded-xl hover:bg-rose-100 transition-colors cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
                   Sign Out ({user?.name?.split(' ')[0]})
@@ -294,7 +325,7 @@ const Navbar = () => {
                   <Link
                     to="/login"
                     onClick={() => setIsOpen(false)}
-                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200"
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-semibold text-slate-700 bg-slate-100 rounded-xl hover:bg-slate-200"
                   >
                     <LogIn className="w-4 h-4" />
                     Login
@@ -302,7 +333,7 @@ const Navbar = () => {
                   <Link
                     to="/register"
                     onClick={() => setIsOpen(false)}
-                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100"
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-semibold text-slate-900 bg-emerald-100 rounded-xl hover:bg-emerald-200"
                   >
                     <UserPlus className="w-4 h-4" />
                     Sign Up
@@ -314,11 +345,11 @@ const Navbar = () => {
         )}
       </nav>
 
-      {/* Requirement 3: Sleek "My Campus Profile" Modal */}
+      {/* Sleek "My Campus Profile" Modal */}
       {isProfileOpen && (
         <div
           onClick={() => setIsProfileOpen(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/65 backdrop-blur-sm animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md animate-fadeIn"
         >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -470,7 +501,7 @@ const Navbar = () => {
                 <button
                   type="submit"
                   disabled={isUpdating}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-60 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
                 >
                   {isUpdating ? (
                     <>

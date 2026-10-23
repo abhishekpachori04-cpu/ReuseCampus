@@ -27,11 +27,14 @@ API.interceptors.response.use(
     const status = error.response?.status;
     const url = error.config?.url || '';
 
-    // Ignore 401s on login/register endpoints where 401 is an expected credential rejection
-    const isAuthLoginOrRegister =
-      url.includes('/auth/login') || url.includes('/auth/register');
+    // Ignore 401s on auth credential and recovery endpoints
+    const isAuthExempt =
+      url.includes('/auth/login') ||
+      url.includes('/auth/register') ||
+      url.includes('/auth/forgot-password') ||
+      url.includes('/auth/reset-password');
 
-    if (status === 401 && !isAuthLoginOrRegister) {
+    if (status === 401 && !isAuthExempt) {
       // Clear client session tokens
       localStorage.removeItem('reusecampus_token');
       localStorage.removeItem('reusecampus_user');

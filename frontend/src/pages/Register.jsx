@@ -82,20 +82,24 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-slate-200 shadow-xl shadow-slate-200/50 space-y-6">
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Subtle ambient glows */}
+      <div className="absolute top-1/4 -left-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="max-w-md w-full bg-white/95 backdrop-blur-md rounded-3xl p-8 border border-slate-200/80 shadow-2xl shadow-slate-900/5 space-y-6 relative z-10">
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-2 shadow-sm">
+          <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-700 text-white rounded-2xl flex items-center justify-center mx-auto mb-2 shadow-md shadow-emerald-500/20">
             <UserPlus className="w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900">Create Campus Account</h2>
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Create Campus Account</h2>
           <p className="text-sm text-slate-500">
             Join your college community with your verified student email
           </p>
         </div>
 
         {errorMessage && (
-          <div className="flex items-start gap-2.5 p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm animate-fadeIn">
+          <div className="flex items-start gap-2.5 p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl text-sm font-medium animate-fadeIn">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
             <span>{errorMessage}</span>
           </div>
@@ -103,7 +107,7 @@ const Register = () => {
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
               Full Name *
             </label>
             <div className="relative">
@@ -115,13 +119,13 @@ const Register = () => {
                 onChange={handleChange}
                 placeholder="Alex Morgan"
                 required
-                className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white text-sm transition-all"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
               College Email (@rjit.ac.in) *
             </label>
             <div className="relative">
@@ -131,15 +135,15 @@ const Register = () => {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                placeholder="e.g., 0902cs241008@rjit.ac.in"
+                placeholder="0902cs241008@rjit.ac.in"
                 required
-                className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white text-sm transition-all"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
               College / University Name *
             </label>
             <div className="relative">
@@ -149,7 +153,7 @@ const Register = () => {
                 value={formData.college}
                 onChange={handleChange}
                 required
-                className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white text-sm transition-all cursor-pointer"
               >
                 {COLLEGES.map((option) => (
                   <option key={option} value={option}>
@@ -161,7 +165,7 @@ const Register = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
               Phone / WhatsApp (Optional)
             </label>
             <div className="relative">
@@ -172,13 +176,13 @@ const Register = () => {
                 value={formData.phone}
                 onChange={handleChange}
                 placeholder="+91 98765 43210"
-                className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white text-sm transition-all"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
               Password (min. 6 characters) *
             </label>
             <div className="relative">
@@ -191,13 +195,13 @@ const Register = () => {
                 placeholder="••••••••"
                 required
                 minLength={6}
-                className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white text-sm transition-all"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
               Confirm Password *
             </label>
             <div className="relative">
@@ -210,7 +214,7 @@ const Register = () => {
                 placeholder="••••••••"
                 required
                 minLength={6}
-                className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white text-sm transition-all"
               />
             </div>
           </div>
@@ -218,7 +222,7 @@ const Register = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-2 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-semibold py-2.5 px-4 rounded-xl shadow-md shadow-emerald-600/20 transition-all active:scale-95 text-sm cursor-pointer disabled:cursor-not-allowed"
+            className="w-full mt-2 flex items-center justify-center gap-2 bg-slate-900 hover:bg-emerald-600 disabled:bg-slate-400 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-all active:scale-95 text-sm cursor-pointer disabled:cursor-not-allowed"
           >
             {loading ? (
               <>
@@ -236,7 +240,7 @@ const Register = () => {
 
         <div className="text-center text-sm text-slate-500 pt-2 border-t border-slate-100">
           Already registered?{' '}
-          <Link to="/login" className="text-emerald-600 hover:underline font-semibold">
+          <Link to="/login" className="text-emerald-600 hover:text-emerald-700 font-bold hover:underline">
             Sign In here
           </Link>
         </div>
@@ -246,5 +250,3 @@ const Register = () => {
 };
 
 export default Register;
-
-

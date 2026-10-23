@@ -17,11 +17,14 @@ import assert from 'node:assert/strict';
 
 // 2. Dynamic asynchronous imports ensure process.env.NODE_ENV='test' is active
 const { default: app } = await import('../server.js');
-const { isCollegeEmailValid } = await import('../models/User.js');
+const { default: User, isCollegeEmailValid } = await import('../models/User.js');
 const { sanitizeKeys } = await import('../middlewares/sanitizeMiddleware.js');
 const { default: Listing, CATEGORIES, CONDITIONS, STATUSES } = await import('../models/Listing.js');
 const { protect } = await import('../middlewares/authMiddleware.js');
 const { isListingOwner } = await import('../controllers/listingController.js');
+const { forgotPassword, verifyOtp, resetPassword, maskEmail } = await import('../controllers/authController.js');
+const { default: jwt } = await import('jsonwebtoken');
+const { default: bcrypt } = await import('bcryptjs');
 
 describe('=== ReuseCampus Senior Engineering Automated Test Suite ===', () => {
 
@@ -299,6 +302,484 @@ describe('=== ReuseCampus Senior Engineering Automated Test Suite ===', () => {
       assert.strictEqual(data.environment, 'test');
       assert.ok(data.timestamp);
       assert.ok(!isNaN(Date.parse(data.timestamp)), 'Timestamp must be a valid ISO date');
+    });
+  });
+
+  describe('6. Production-Grade 3-Step Email OTP Password Recovery Flow', () => {
+    it('should correctly mask student college emails for privacy (e.g., 0902••••08@rjit.ac.in)', () => {
+      assert.strictEqual(maskEmail('0902cs241008@rjit.ac.in'), '0902••••08@rjit.ac.in');
+      assert.strictEqual(maskEmail('0902it211045@rjit.ac.in'), '0902••••45@rjit.ac.in');
+      assert.strictEqual(maskEmail('user@rjit.ac.in'), 'u••••r@rjit.ac.in');
+      assert.strictEqual(maskEmail(''), '');
+    });
+
+    it('should reject forgot-password when identifier is missing or empty with 400', async () => {
+      const req = { body: {} };
+      let statusCode = null;
+      let jsonBody = null;
+      const res = {
+        status(code) {
+          statusCode = code;
+          return this;
+        },
+        json(data) {
+          jsonBody = data;
+          return this;
+        },
+      };
+
+      await forgotPassword(req, res);
+      assert.strictEqual(statusCode, 400);
+      assert.strictEqual(jsonBody.success, false);
+      assert.match(jsonBody.message, /registered rjit college email or 10-digit/i);
+    });
+
+    it('should return 404 when no student account matches the provided email or phone', async () => {
+      const origFindOne = User.findOne;
+      User.findOne = async () => null;
+
+      try {
+        const req = { body: { identifier: 'unknown.student@rjit.ac.in' } };
+        let statusCode = null;
+        let jsonBody = null;
+        const res = {
+          status(code) {
+            statusCode = code;
+            return this;
+          },
+          json(data) {
+            jsonBody = data;
+            return this;
+          },
+        };
+
+        await forgotPassword(req, res);
+        assert.strictEqual(statusCode, 404);
+        assert.strictEqual(jsonBody.success, false);
+        assert.match(jsonBody.message, /no registered student account found/i);
+      } finally {
+        User.findOne = origFindOne;
+      }
+    });
+
+    it('should generate 6-digit OTP, bcrypt hash, 10m expiry, and return maskedEmail without leaking OTP', async () => {
+      const origFindOne = User.findOne;
+      const testUserId = '654321000000000000000001';
+      let savedUser = null;
+
+      const mockUser = {
+        _id: testUserId,
+        email: '0902cs241008@rjit.ac.in',
+        phone: '9876543210',
+        resetOtpHash: null,
+        resetOtpExpires: null,
+        resetOtpAttempts: 0,
+        save: async function () {
+          savedUser = this;
+          return this;
+        },
+      };
+
+      User.findOne = async () => mockUser;
+
+      try {
+        const req = { body: { identifier: '0902cs241008@rjit.ac.in' } };
+        let statusCode = 200;
+        let jsonBody = null;
+        const res = {
+          status(code) {
+            statusCode = code;
+            return this;
+          },
+          json(data) {
+            jsonBody = data;
+            return this;
+          },
+        };
+
+        await forgotPassword(req, res);
+
+        assert.strictEqual(statusCode, 200);
+        assert.strictEqual(jsonBody.success, true);
+        assert.strictEqual(jsonBody.maskedEmail, '0902••••08@rjit.ac.in');
+        assert.strictEqual(jsonBody.otp, undefined, 'CRITICAL SECURITY INVARIANT: OTP must NEVER be leaked in JSON response');
+        assert.strictEqual(jsonBody.code, undefined);
+
+        // Verify stored state on User
+        assert.ok(savedUser.resetOtpHash, 'Bcrypt hash must be set');
+        assert.ok(savedUser.resetOtpExpires > new Date(), 'Expiry must be in the future (10 min)');
+        assert.strictEqual(savedUser.resetOtpAttempts, 0);
+      } finally {
+        User.findOne = origFindOne;
+      }
+    });
+
+    it('should allow requesting OTP using 10-digit registered phone number', async () => {
+      const origFindOne = User.findOne;
+      let searchedQuery = null;
+
+      User.findOne = async (query) => {
+        searchedQuery = query;
+        return {
+          _id: '654321000000000000000001',
+          email: '0902cs241008@rjit.ac.in',
+          phone: '+91 98765 43210',
+          save: async () => {},
+        };
+      };
+
+      try {
+        const req = { body: { identifier: '9876543210' } };
+        let statusCode = 200;
+        let jsonBody = null;
+        const res = {
+          status(code) {
+            statusCode = code;
+            return this;
+          },
+          json(data) {
+            jsonBody = data;
+            return this;
+          },
+        };
+
+        await forgotPassword(req, res);
+        assert.strictEqual(statusCode, 200);
+        assert.strictEqual(jsonBody.success, true);
+        assert.strictEqual(jsonBody.maskedEmail, '0902••••08@rjit.ac.in');
+        assert.ok(searchedQuery && searchedQuery.phone);
+      } finally {
+        User.findOne = origFindOne;
+      }
+    });
+
+    it('should reject verify-otp if OTP is malformed or not 6 digits', async () => {
+      const req = { body: { identifier: '0902cs241008@rjit.ac.in', otp: '123' } };
+      let statusCode = null;
+      let jsonBody = null;
+      const res = {
+        status(code) {
+          statusCode = code;
+          return this;
+        },
+        json(data) {
+          jsonBody = data;
+          return this;
+        },
+      };
+
+      await verifyOtp(req, res);
+      assert.strictEqual(statusCode, 400);
+      assert.strictEqual(jsonBody.success, false);
+      assert.match(jsonBody.message, /valid 6-digit otp code/i);
+    });
+
+    it('should reject verify-otp if OTP is expired (> 10 minutes)', async () => {
+      const origFindOne = User.findOne;
+      User.findOne = async () => ({
+        _id: '654321000000000000000001',
+        email: '0902cs241008@rjit.ac.in',
+        resetOtpHash: '$2a$10$abcdefg',
+        resetOtpExpires: new Date(Date.now() - 1000), // Expired 1 second ago
+        resetOtpAttempts: 0,
+      });
+
+      try {
+        const req = { body: { identifier: '0902cs241008@rjit.ac.in', otp: '123456' } };
+        let statusCode = null;
+        let jsonBody = null;
+        const res = {
+          status(code) {
+            statusCode = code;
+            return this;
+          },
+          json(data) {
+            jsonBody = data;
+            return this;
+          },
+        };
+
+        await verifyOtp(req, res);
+        assert.strictEqual(statusCode, 400);
+        assert.strictEqual(jsonBody.success, false);
+        assert.match(jsonBody.message, /otp has expired/i);
+      } finally {
+        User.findOne = origFindOne;
+      }
+    });
+
+    it('should increment resetOtpAttempts on failed OTP check and block after 5 attempts (brute-force defense)', async () => {
+      const origFindOne = User.findOne;
+      const testHash = await bcrypt.hash('654321', 10);
+      let attemptsCount = 0;
+
+      const mockUser = {
+        _id: '654321000000000000000001',
+        email: '0902cs241008@rjit.ac.in',
+        resetOtpHash: testHash,
+        resetOtpExpires: new Date(Date.now() + 600000),
+        resetOtpAttempts: 0,
+        save: async function () {
+          attemptsCount = this.resetOtpAttempts;
+          return this;
+        },
+      };
+
+      User.findOne = async () => mockUser;
+
+      try {
+        // Attempt 1: Wrong code '111111'
+        const req1 = { body: { identifier: '0902cs241008@rjit.ac.in', otp: '111111' } };
+        let statusCode1 = null;
+        let jsonBody1 = null;
+        const res1 = {
+          status(code) {
+            statusCode1 = code;
+            return this;
+          },
+          json(data) {
+            jsonBody1 = data;
+            return this;
+          },
+        };
+
+        await verifyOtp(req1, res1);
+        assert.strictEqual(statusCode1, 400);
+        assert.strictEqual(jsonBody1.success, false);
+        assert.strictEqual(attemptsCount, 1);
+        assert.match(jsonBody1.message, /4 attempt\(s\) remaining/i);
+
+        // Simulate 5 prior failed attempts
+        mockUser.resetOtpAttempts = 5;
+        const req2 = { body: { identifier: '0902cs241008@rjit.ac.in', otp: '654321' } };
+        let statusCode2 = null;
+        let jsonBody2 = null;
+        const res2 = {
+          status(code) {
+            statusCode2 = code;
+            return this;
+          },
+          json(data) {
+            jsonBody2 = data;
+            return this;
+          },
+        };
+
+        await verifyOtp(req2, res2);
+        assert.strictEqual(statusCode2, 400);
+        assert.strictEqual(jsonBody2.success, false);
+        assert.match(jsonBody2.message, /too many failed attempts/i);
+      } finally {
+        User.findOne = origFindOne;
+      }
+    });
+
+    it('should successfully verify valid 6-digit OTP, clear OTP fields, and return short-lived 10m resetToken', async () => {
+      const origFindOne = User.findOne;
+      const testUserId = '654321000000000000000001';
+      const plainOtp = '789456';
+      const testHash = await bcrypt.hash(plainOtp, 10);
+
+      const mockUser = {
+        _id: testUserId,
+        email: '0902cs241008@rjit.ac.in',
+        resetOtpHash: testHash,
+        resetOtpExpires: new Date(Date.now() + 600000),
+        resetOtpAttempts: 0,
+        save: async function () {
+          return this;
+        },
+      };
+
+      User.findOne = async () => mockUser;
+
+      try {
+        const req = { body: { identifier: '0902cs241008@rjit.ac.in', otp: plainOtp } };
+        let statusCode = 200;
+        let jsonBody = null;
+        const res = {
+          status(code) {
+            statusCode = code;
+            return this;
+          },
+          json(data) {
+            jsonBody = data;
+            return this;
+          },
+        };
+
+        await verifyOtp(req, res);
+        assert.strictEqual(statusCode, 200);
+        assert.strictEqual(jsonBody.success, true);
+        assert.ok(jsonBody.resetToken);
+
+        // Invariants: OTP fields must be cleared
+        assert.strictEqual(mockUser.resetOtpHash, undefined);
+        assert.strictEqual(mockUser.resetOtpExpires, undefined);
+        assert.strictEqual(mockUser.resetOtpAttempts, 0);
+
+        // Invariant: resetToken must be a valid JWT with purpose='password_reset'
+        const decoded = jwt.verify(
+          jsonBody.resetToken,
+          process.env.JWT_SECRET || 'test_jwt_secret_token_key_for_unit_tests_32chars'
+        );
+        assert.strictEqual(decoded.id, testUserId);
+        assert.strictEqual(decoded.purpose, 'password_reset');
+      } finally {
+        User.findOne = origFindOne;
+      }
+    });
+
+    it('should reject reset-password with 401 on invalid or tampered reset token', async () => {
+      const req = {
+        body: {
+          resetToken: 'invalid.tampered.token',
+          newPassword: 'newValidPassword123',
+        },
+      };
+
+      let statusCode = null;
+      let jsonBody = null;
+
+      const res = {
+        status(code) {
+          statusCode = code;
+          return this;
+        },
+        json(data) {
+          jsonBody = data;
+          return this;
+        },
+      };
+
+      await resetPassword(req, res);
+
+      assert.strictEqual(statusCode, 401);
+      assert.strictEqual(jsonBody.success, false);
+      assert.match(jsonBody.message, /invalid, tampered, or expired/i);
+    });
+
+    it('should reject reset-password with 401 when token purpose is not password_reset', async () => {
+      const fakeToken = jwt.sign(
+        { id: '654321000000000000000001', purpose: 'login_session' },
+        process.env.JWT_SECRET || 'test_jwt_secret_token_key_for_unit_tests_32chars',
+        { expiresIn: '10m' }
+      );
+
+      const req = {
+        body: {
+          resetToken: fakeToken,
+          newPassword: 'newValidPassword123',
+        },
+      };
+
+      let statusCode = null;
+      let jsonBody = null;
+
+      const res = {
+        status(code) {
+          statusCode = code;
+          return this;
+        },
+        json(data) {
+          jsonBody = data;
+          return this;
+        },
+      };
+
+      await resetPassword(req, res);
+
+      assert.strictEqual(statusCode, 401);
+      assert.strictEqual(jsonBody.success, false);
+      assert.match(jsonBody.message, /invalid password reset token purpose/i);
+    });
+
+    it('should reject reset-password with 400 when new password is too short (< 6 chars)', async () => {
+      const req = {
+        body: {
+          resetToken: 'someTokenString',
+          newPassword: '123',
+        },
+      };
+
+      let statusCode = null;
+      let jsonBody = null;
+
+      const res = {
+        status(code) {
+          statusCode = code;
+          return this;
+        },
+        json(data) {
+          jsonBody = data;
+          return this;
+        },
+      };
+
+      await resetPassword(req, res);
+
+      assert.strictEqual(statusCode, 400);
+      assert.strictEqual(jsonBody.success, false);
+      assert.match(jsonBody.message, /at least 6 characters/i);
+    });
+
+    it('should successfully update user password when given a valid resetToken', async () => {
+      const origFindById = User.findById;
+      let updatedHash = null;
+      const testUserId = '654321000000000000000001';
+
+      const mockUser = {
+        _id: testUserId,
+        passwordHash: 'originalHash',
+        save: async function () {
+          updatedHash = this.passwordHash;
+          return this;
+        },
+      };
+
+      User.findById = async () => mockUser;
+
+      const validResetToken = jwt.sign(
+        { id: testUserId, purpose: 'password_reset' },
+        process.env.JWT_SECRET || 'test_jwt_secret_token_key_for_unit_tests_32chars',
+        { expiresIn: '10m' }
+      );
+
+      try {
+        const req = {
+          body: {
+            resetToken: validResetToken,
+            newPassword: 'BrandNewSecurePass2026',
+          },
+        };
+
+        let statusCode = 200;
+        let jsonBody = null;
+        let errCatch = null;
+
+        const res = {
+          status(code) {
+            statusCode = code;
+            return this;
+          },
+          json(data) {
+            jsonBody = data;
+            return this;
+          },
+        };
+
+        await resetPassword(req, res, (err) => {
+          errCatch = err;
+        });
+
+        assert.strictEqual(errCatch, null);
+        assert.strictEqual(statusCode, 200);
+        assert.strictEqual(jsonBody.success, true);
+        assert.match(jsonBody.message, /password updated successfully/i);
+        assert.ok(updatedHash && updatedHash !== 'originalHash');
+      } finally {
+        User.findById = origFindById;
+      }
     });
   });
 });

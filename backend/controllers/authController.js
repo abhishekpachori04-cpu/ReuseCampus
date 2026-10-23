@@ -1,7 +1,9 @@
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User, { isCollegeEmailValid } from '../models/User.js';
 import asyncHandler from '../utils/asyncHandler.js';
+import sendEmailOtp from '../utils/sendEmailOtp.js';
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || 'secret_fallback', {
@@ -171,3 +173,217 @@ export const getMe = asyncHandler(async (req, res) => {
     data: req.user,
   });
 });
+
+/**
+ * Formats a college email address with masking for privacy (e.g., 0902••••08@rjit.ac.in)
+ */
+export const maskEmail = (email) => {
+  if (!email || typeof email !== 'string' || !email.includes('@')) return '';
+  const [local, domain] = email.split('@');
+  if (local.length <= 4) {
+    return `${local[0]}••••${local.slice(-1)}@${domain}`;
+  }
+  const prefix = local.slice(0, 4);
+  const suffix = local.slice(-2);
+  return `${prefix}••••${suffix}@${domain}`;
+};
+
+/**
+ * Finds user by college email or 10-digit registered phone number
+ */
+export const findUserByIdentifier = async (identifier) => {
+  if (!identifier || typeof identifier !== 'string') return null;
+  const trimmed = identifier.trim();
+  if (trimmed.includes('@')) {
+    return await User.findOne({ email: trimmed.toLowerCase() });
+  }
+  const digits = trimmed.replace(/\D/g, '');
+  if (digits.length >= 10) {
+    const last10 = digits.slice(-10);
+    return await User.findOne({
+      phone: { $regex: new RegExp(last10 + '$') },
+    });
+  }
+  return null;
+};
+
+/**
+ * @desc    Request a 6-digit Email OTP for password recovery
+ * @route   POST /api/auth/forgot-password
+ * @access  Public (Rate-limited)
+ */
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const identifier = req.body?.identifier || req.body?.email;
+
+  if (!identifier || typeof identifier !== 'string' || !identifier.trim()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Please provide your registered RJIT college email or 10-digit mobile number.',
+    });
+  }
+
+  const user = await findUserByIdentifier(identifier);
+  if (!user || !user.email) {
+    return res.status(404).json({
+      success: false,
+      message: 'No registered student account found matching this email or phone number.',
+    });
+  }
+
+  // Generate cryptographically secure 6-digit OTP (100000 - 999999)
+  const otp = crypto.randomInt(100000, 1000000).toString();
+
+  // Hash OTP with bcrypt before saving to database
+  const salt = await bcrypt.genSalt(10);
+  user.resetOtpHash = await bcrypt.hash(otp, salt);
+  user.resetOtpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes validity
+  user.resetOtpAttempts = 0;
+  await user.save();
+
+  // Dispatch branded campus email containing 6-digit OTP (or console fallback in dev)
+  await sendEmailOtp(user.email, otp);
+
+  // Return masked email confirmation without EVER leaking the OTP
+  res.json({
+    success: true,
+    maskedEmail: maskEmail(user.email),
+    message: 'A 6-digit OTP has been sent to your registered campus email.',
+  });
+});
+
+/**
+ * @desc    Verify 6-digit Email OTP and return short-lived password reset token
+ * @route   POST /api/auth/verify-otp
+ * @access  Public (Rate-limited)
+ */
+export const verifyOtp = asyncHandler(async (req, res) => {
+  const { identifier, otp } = req.body;
+
+  if (!identifier || !otp || typeof identifier !== 'string' || typeof otp !== 'string') {
+    return res.status(400).json({
+      success: false,
+      message: 'Please provide both your registered identifier and the 6-digit OTP.',
+    });
+  }
+
+  const cleanOtp = otp.trim();
+  if (cleanOtp.length !== 6 || !/^\d{6}$/.test(cleanOtp)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Please provide a valid 6-digit OTP code.',
+    });
+  }
+
+  const user = await findUserByIdentifier(identifier);
+  if (!user) {
+    return res.status(400).json({
+      success: false,
+      message: 'Student account not found or invalid request.',
+    });
+  }
+
+  // Enforce brute-force protection (maximum 5 failed attempts)
+  if (user.resetOtpAttempts >= 5) {
+    return res.status(400).json({
+      success: false,
+      message: 'Too many failed attempts. This OTP has been invalidated for security. Please request a new one.',
+    });
+  }
+
+  // Enforce 10-minute expiry window
+  if (!user.resetOtpExpires || user.resetOtpExpires.getTime() < Date.now()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Verification OTP has expired. Please request a new code.',
+    });
+  }
+
+  // Verify OTP hash against stored bcrypt hash
+  const isMatch = await bcrypt.compare(cleanOtp, user.resetOtpHash || '');
+  if (!isMatch) {
+    user.resetOtpAttempts = (user.resetOtpAttempts || 0) + 1;
+    await user.save();
+    const remaining = Math.max(0, 5 - user.resetOtpAttempts);
+    return res.status(400).json({
+      success: false,
+      message: `Invalid OTP code. ${remaining} attempt(s) remaining.`,
+    });
+  }
+
+  // Verification successful! Clear OTP fields to prevent replay attacks
+  user.resetOtpHash = undefined;
+  user.resetOtpExpires = undefined;
+  user.resetOtpAttempts = 0;
+  await user.save();
+
+  // Issue 10-minute password reset JWT
+  const resetToken = jwt.sign(
+    { id: user._id, purpose: 'password_reset' },
+    process.env.JWT_SECRET || 'secret_fallback',
+    { expiresIn: '10m' }
+  );
+
+  res.json({
+    success: true,
+    resetToken,
+    message: 'OTP verified successfully! You can now set a new password.',
+  });
+});
+
+/**
+ * @desc    Reset student password using verified resetToken
+ * @route   POST /api/auth/reset-password
+ * @access  Public (Rate-limited)
+ */
+export const resetPassword = asyncHandler(async (req, res) => {
+  const { resetToken, newPassword } = req.body;
+
+  if (!resetToken || !newPassword) {
+    return res.status(400).json({
+      success: false,
+      message: 'Please provide both reset token and new password.',
+    });
+  }
+
+  if (typeof newPassword !== 'string' || newPassword.length < 6) {
+    return res.status(400).json({
+      success: false,
+      message: 'Password must be at least 6 characters long.',
+    });
+  }
+
+  let decoded;
+  try {
+    decoded = jwt.verify(resetToken, process.env.JWT_SECRET || 'secret_fallback');
+  } catch {
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid, tampered, or expired password reset token.',
+    });
+  }
+
+  if (!decoded || decoded.purpose !== 'password_reset' || !decoded.id) {
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid password reset token purpose.',
+    });
+  }
+
+  const user = await User.findById(decoded.id);
+  if (!user) {
+    return res.status(400).json({
+      success: false,
+      message: 'User associated with this reset token no longer exists.',
+    });
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  user.passwordHash = await bcrypt.hash(newPassword, salt);
+  await user.save();
+
+  res.json({
+    success: true,
+    message: 'Password updated successfully! Please sign in.',
+  });
+});
+

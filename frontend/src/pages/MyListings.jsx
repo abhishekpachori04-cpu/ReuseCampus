@@ -237,11 +237,11 @@ const MyListings = () => {
   if (!authLoading && !isAuthenticated) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-6">
-        <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-sm">
+        <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-700 text-white rounded-3xl flex items-center justify-center mx-auto shadow-md shadow-emerald-500/20">
           <Lock className="w-8 h-8" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-bold text-slate-900">Sign in to view your seller dashboard</h2>
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Sign in to view your seller dashboard</h2>
           <p className="text-slate-500 text-sm max-w-md mx-auto">
             You need a verified campus student account to manage your listings, edit items, and track sales.
           </p>
@@ -249,7 +249,7 @@ const MyListings = () => {
         <Link
           to="/login"
           state={{ from: { pathname: '/my-listings' } }}
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-md shadow-emerald-600/25 transition-all"
+          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-emerald-600 text-white font-bold text-sm shadow-md transition-all active:scale-95"
         >
           Sign In to Campus Account
         </Link>
@@ -260,10 +260,10 @@ const MyListings = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold uppercase tracking-wider mb-2 border border-emerald-200">
-            <Package className="w-3.5 h-3.5" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold uppercase tracking-wider mb-2">
+            <Package className="w-3.5 h-3.5 text-emerald-600" />
             Seller Management
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
@@ -276,28 +276,28 @@ const MyListings = () => {
 
         <Link
           to="/create"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-md shadow-emerald-600/25 transition-all shrink-0 active:scale-95"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-emerald-600 text-white font-bold text-sm shadow-sm hover:shadow-md hover:shadow-emerald-600/20 transition-all shrink-0 active:scale-95"
         >
-          <PlusCircle className="w-4 h-4" />
+          <PlusCircle className="w-4 h-4 text-emerald-400" />
           Post New Item
         </Link>
       </div>
 
-      {/* Requirement 1: Clear Summary Stats at the Top */}
+      {/* Clean Luxury Summary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         {/* Total Listings Card */}
         <div
           onClick={() => setFilterTab('ALL')}
-          className={`p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group ${
+          className={`p-6 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group ${
             filterTab === 'ALL'
-              ? 'bg-slate-900 text-white border-slate-900 shadow-lg'
+              ? 'bg-slate-900 text-white border-slate-900 shadow-xl'
               : 'bg-white text-slate-800 border-slate-200 hover:border-slate-300 shadow-sm'
           }`}
         >
           <div className="flex items-center justify-between">
             <span
               className={`text-xs font-bold uppercase tracking-wider ${
-                filterTab === 'ALL' ? 'text-slate-300' : 'text-slate-500'
+                filterTab === 'ALL' ? 'text-slate-400' : 'text-slate-400'
               }`}
             >
               Total Listings
@@ -313,7 +313,7 @@ const MyListings = () => {
             </div>
           </div>
           <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-3xl sm:text-4xl font-black">{totalCount}</span>
+            <span className="font-mono text-3xl sm:text-4xl font-bold">{totalCount}</span>
             <span
               className={`text-xs font-medium ${
                 filterTab === 'ALL' ? 'text-slate-400' : 'text-slate-500'
@@ -331,16 +331,16 @@ const MyListings = () => {
         {/* Active / Available Listings Card */}
         <div
           onClick={() => setFilterTab('AVAILABLE')}
-          className={`p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group ${
+          className={`p-6 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group ${
             filterTab === 'AVAILABLE'
-              ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/25'
+              ? 'bg-emerald-600 text-white border-emerald-600 shadow-xl shadow-emerald-600/25'
               : 'bg-white text-slate-800 border-slate-200 hover:border-emerald-300 shadow-sm'
           }`}
         >
           <div className="flex items-center justify-between">
             <span
               className={`text-xs font-bold uppercase tracking-wider ${
-                filterTab === 'AVAILABLE' ? 'text-emerald-100' : 'text-emerald-700'
+                filterTab === 'AVAILABLE' ? 'text-emerald-100' : 'text-slate-400'
               }`}
             >
               Active Listings
@@ -356,7 +356,7 @@ const MyListings = () => {
             </div>
           </div>
           <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-3xl sm:text-4xl font-black">{activeCount}</span>
+            <span className="font-mono text-3xl sm:text-4xl font-bold">{activeCount}</span>
             <span
               className={`text-xs font-medium ${
                 filterTab === 'AVAILABLE' ? 'text-emerald-100' : 'text-slate-500'
@@ -374,16 +374,16 @@ const MyListings = () => {
         {/* Sold Listings Card */}
         <div
           onClick={() => setFilterTab('SOLD')}
-          className={`p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group ${
+          className={`p-6 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group ${
             filterTab === 'SOLD'
-              ? 'bg-amber-600 text-white border-amber-600 shadow-lg shadow-amber-600/25'
+              ? 'bg-amber-600 text-white border-amber-600 shadow-xl shadow-amber-600/25'
               : 'bg-white text-slate-800 border-slate-200 hover:border-amber-300 shadow-sm'
           }`}
         >
           <div className="flex items-center justify-between">
             <span
               className={`text-xs font-bold uppercase tracking-wider ${
-                filterTab === 'SOLD' ? 'text-amber-100' : 'text-amber-700'
+                filterTab === 'SOLD' ? 'text-amber-100' : 'text-slate-400'
               }`}
             >
               Sold Items
@@ -397,7 +397,7 @@ const MyListings = () => {
             </div>
           </div>
           <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-3xl sm:text-4xl font-black">{soldCount}</span>
+            <span className="font-mono text-3xl sm:text-4xl font-bold">{soldCount}</span>
             <span
               className={`text-xs font-medium ${
                 filterTab === 'SOLD' ? 'text-amber-100' : 'text-slate-500'
@@ -415,14 +415,14 @@ const MyListings = () => {
 
       {/* Notifications / Feedback */}
       {actionSuccess && (
-        <div className="flex items-center justify-between gap-3 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-sm animate-fadeIn shadow-sm">
+        <div className="flex items-center justify-between gap-3 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-sm font-medium animate-fadeIn shadow-sm">
           <div className="flex items-center gap-2.5">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-            <span className="font-medium">{actionSuccess}</span>
+            <span>{actionSuccess}</span>
           </div>
           <button
             onClick={() => setActionSuccess('')}
-            className="text-emerald-700 hover:text-emerald-900 p-1 rounded-lg"
+            className="text-emerald-700 hover:text-emerald-900 p-1 rounded-lg cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -430,14 +430,14 @@ const MyListings = () => {
       )}
 
       {errorMessage && (
-        <div className="flex items-center justify-between gap-3 p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl text-sm animate-fadeIn shadow-sm">
+        <div className="flex items-center justify-between gap-3 p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl text-sm font-medium animate-fadeIn shadow-sm">
           <div className="flex items-start gap-2.5">
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-rose-600" />
             <span>{errorMessage}</span>
           </div>
           <button
             onClick={() => setErrorMessage('')}
-            className="text-rose-600 hover:text-rose-800 p-1 rounded-lg"
+            className="text-rose-600 hover:text-rose-800 p-1 rounded-lg cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -482,7 +482,7 @@ const MyListings = () => {
           </button>
         </div>
 
-        <span className="text-xs text-slate-400">
+        <span className="text-xs text-slate-400 font-medium">
           Showing {displayedListings.length} of {totalCount} item{totalCount === 1 ? '' : 's'}
         </span>
       </div>
@@ -525,15 +525,15 @@ const MyListings = () => {
           ) : (
             <Link
               to="/create"
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-md shadow-emerald-600/20 transition-all"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-emerald-600 text-white font-bold text-sm shadow-md transition-all"
             >
-              <PlusCircle className="w-4 h-4" />
+              <PlusCircle className="w-4 h-4 text-emerald-400" />
               Create Your First Listing
             </Link>
           )}
         </div>
       ) : (
-        /* Requirement 1: Listings Cards with the 3 Working Action Buttons */
+        /* Listing Cards with 3 Action Buttons */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {displayedListings.map((item) => {
             const isSold = item.status === 'SOLD';
@@ -541,14 +541,14 @@ const MyListings = () => {
             return (
               <div
                 key={item._id}
-                className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-lg transition-all flex flex-col group relative"
+                className="bg-white rounded-3xl border border-slate-200/90 overflow-hidden shadow-sm hover:shadow-xl hover:border-slate-300 transition-all duration-300 flex flex-col group relative"
               >
                 {/* Image Section */}
-                <div className="relative h-52 w-full bg-slate-100 overflow-hidden">
+                <div className="relative aspect-[4/3] w-full bg-slate-100 overflow-hidden">
                   <img
                     src={item.imageUrl}
                     alt={item.title}
-                    className={`w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 ${
+                    className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
                       isSold ? 'grayscale-[40%] opacity-85' : ''
                     }`}
                     onError={(e) => {
@@ -559,7 +559,7 @@ const MyListings = () => {
 
                   {/* Category Badge Top-Left */}
                   <div className="absolute top-3 left-3 flex items-center gap-1.5">
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/95 backdrop-blur-md text-slate-800 shadow-sm border border-slate-200/60">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold backdrop-blur-md bg-slate-900/75 text-white shadow-sm border border-white/20">
                       {item.category}
                     </span>
                   </div>
@@ -577,8 +577,8 @@ const MyListings = () => {
 
                   {/* Watermark badge on image if sold */}
                   {isSold && (
-                    <div className="absolute inset-0 bg-slate-900/35 backdrop-blur-[1px] flex items-center justify-center pointer-events-none">
-                      <span className="px-4 py-1.5 rounded-xl bg-amber-600/95 text-white font-black text-sm tracking-widest uppercase shadow-lg border border-amber-400/40">
+                    <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[1px] flex items-center justify-center pointer-events-none">
+                      <span className="px-4 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-black text-sm tracking-widest uppercase shadow-lg border border-amber-300">
                         SOLD OUT
                       </span>
                     </div>
@@ -588,12 +588,12 @@ const MyListings = () => {
                 {/* Listing Details */}
                 <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                   <div>
-                    <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-                      <span className="font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                    <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
+                      <span className="font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px]">
                         {item.condition}
                       </span>
-                      <span className="flex items-center gap-1 text-slate-400">
-                        <Clock className="w-3.5 h-3.5" />
+                      <span className="flex items-center gap-1 text-[11px]">
+                        <Clock className="w-3.5 h-3.5 text-slate-400" />
                         {new Date(item.createdAt).toLocaleDateString()}
                       </span>
                     </div>
@@ -608,12 +608,12 @@ const MyListings = () => {
 
                     {Number(item.price) === 0 ? (
                       <div className="mt-3">
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-emerald-50 text-emerald-700 font-extrabold text-xs sm:text-sm border border-emerald-200 shadow-sm">
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-emerald-50 text-emerald-800 font-extrabold text-xs sm:text-sm border border-emerald-200 shadow-sm">
                           🎁 FREE FOR JUNIORS
                         </span>
                       </div>
                     ) : (
-                      <p className="text-2xl font-black text-emerald-700 mt-3">
+                      <p className="font-mono text-2xl font-bold text-slate-900 mt-3">
                         ₹{item.price.toLocaleString()}
                       </p>
                     )}
@@ -625,7 +625,7 @@ const MyListings = () => {
                     <button
                       type="button"
                       onClick={() => handleToggleStatus(item._id, item.status)}
-                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
                         isSold
                           ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200'
                           : 'bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200'
@@ -649,7 +649,7 @@ const MyListings = () => {
                     <button
                       type="button"
                       onClick={() => handleOpenEdit(item)}
-                      className="p-2 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors cursor-pointer border border-slate-200"
+                      className="p-2 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors cursor-pointer border border-slate-200 active:scale-95"
                       title="Edit Item Details"
                       aria-label="Edit Listing"
                     >
@@ -660,7 +660,7 @@ const MyListings = () => {
                     <button
                       type="button"
                       onClick={() => setDeletingItem(item)}
-                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer border border-slate-200"
+                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer border border-slate-200 active:scale-95"
                       title="Delete Listing"
                       aria-label="Delete Listing"
                     >
@@ -674,11 +674,11 @@ const MyListings = () => {
         </div>
       )}
 
-      {/* Requirement 1.b: Clean Edit Listing Modal Pre-filled With Current Fields & File Upload */}
+      {/* Clean Edit Listing Modal Pre-filled With Current Fields & File Upload */}
       {editingListing && (
         <div
           onClick={() => setEditingListing(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/65 backdrop-blur-sm animate-fadeIn overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/65 backdrop-blur-md animate-fadeIn overflow-y-auto"
         >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -707,7 +707,7 @@ const MyListings = () => {
             <form onSubmit={handleSaveEdit} className="space-y-4">
               {/* Item Title */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                   Item Title *
                 </label>
                 <input
@@ -718,14 +718,14 @@ const MyListings = () => {
                   }
                   required
                   placeholder="e.g. Higher Engineering Mathematics by B.S. Grewal"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
                 />
               </div>
 
               {/* Category & Condition */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                     Category *
                   </label>
                   <select
@@ -733,7 +733,7 @@ const MyListings = () => {
                     onChange={(e) =>
                       setEditingListing({ ...editingListing, category: e.target.value })
                     }
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white cursor-pointer"
                   >
                     {CATEGORIES.map((c) => (
                       <option key={c} value={c}>
@@ -744,7 +744,7 @@ const MyListings = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                     Condition *
                   </label>
                   <select
@@ -752,7 +752,7 @@ const MyListings = () => {
                     onChange={(e) =>
                       setEditingListing({ ...editingListing, condition: e.target.value })
                     }
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white cursor-pointer"
                   >
                     {CONDITIONS.map((c) => (
                       <option key={c} value={c}>
@@ -802,7 +802,7 @@ const MyListings = () => {
               {/* Price & Status */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                     Price (₹) *
                   </label>
                   <div className="relative">
@@ -817,17 +817,17 @@ const MyListings = () => {
                       disabled={Number(editingListing.price) === 0}
                       required
                       placeholder={Number(editingListing.price) === 0 ? '0 (Free Donation)' : '0 for Free'}
-                      className={`w-full pl-9 pr-3 py-2.5 rounded-xl border text-sm transition-all ${
+                      className={`w-full pl-9 pr-3 py-2.5 rounded-xl border text-sm font-mono transition-all ${
                         Number(editingListing.price) === 0
                           ? 'bg-emerald-50/50 border-emerald-300 text-emerald-800 font-bold cursor-not-allowed'
-                          : 'border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500'
+                          : 'border-slate-200 bg-slate-50/50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white'
                       }`}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                     Status *
                   </label>
                   <select
@@ -835,7 +835,7 @@ const MyListings = () => {
                     onChange={(e) =>
                       setEditingListing({ ...editingListing, status: e.target.value })
                     }
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white cursor-pointer"
                   >
                     <option value="AVAILABLE">AVAILABLE</option>
                     <option value="SOLD">SOLD</option>
@@ -845,7 +845,7 @@ const MyListings = () => {
 
               {/* Image Preview & Replacement Section (Allows File Upload Replacement) */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                   Item Photo *
                 </label>
 
@@ -875,7 +875,7 @@ const MyListings = () => {
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={compressingImage}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-emerald-600 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
                       >
                         <Camera className="w-3.5 h-3.5" />
                         {compressingImage ? 'Processing...' : 'Replace Photo'}
@@ -884,7 +884,7 @@ const MyListings = () => {
                       <button
                         type="button"
                         onClick={() => setShowUrlInput(!showUrlInput)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-medium transition-colors cursor-pointer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
                       >
                         <ExternalLink className="w-3 h-3" />
                         {showUrlInput ? 'Hide URL' : 'Edit URL'}
@@ -924,7 +924,7 @@ const MyListings = () => {
 
               {/* Description */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                   Description *
                 </label>
                 <textarea
@@ -935,7 +935,7 @@ const MyListings = () => {
                   }
                   required
                   placeholder="Specify edition, highlights, accessories included, campus handover location..."
-                  className="w-full p-3 rounded-xl border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 leading-relaxed"
+                  className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white leading-relaxed"
                 />
               </div>
 
@@ -951,7 +951,7 @@ const MyListings = () => {
                 <button
                   type="submit"
                   disabled={savingEdit || compressingImage}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-emerald-600 disabled:bg-slate-400 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
                 >
                   {savingEdit ? (
                     <>
@@ -971,11 +971,11 @@ const MyListings = () => {
         </div>
       )}
 
-      {/* Requirement 1.c: Clean Delete Confirmation Modal */}
+      {/* Clean Delete Confirmation Modal */}
       {deletingItem && (
         <div
           onClick={() => !isDeleting && setDeletingItem(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/65 backdrop-blur-sm animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/65 backdrop-blur-md animate-fadeIn"
         >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -1009,7 +1009,7 @@ const MyListings = () => {
                 type="button"
                 disabled={isDeleting}
                 onClick={handleConfirmDelete}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:bg-rose-400 text-white font-semibold text-xs shadow-md shadow-rose-600/20 transition-all cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:bg-rose-400 text-white font-bold text-xs shadow-md shadow-rose-600/20 transition-all cursor-pointer"
               >
                 {isDeleting ? (
                   <>

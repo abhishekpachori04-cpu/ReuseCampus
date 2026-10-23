@@ -22,7 +22,7 @@ const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80';
 
 /**
- * 2-Column Quick View & Seller Contact Modal
+ * 2-Column Luxury Quick View & Seller Contact Modal
  */
 const ListingDetailModal = ({ listing, onClose, currentUser }) => {
   const [copiedContact, setCopiedContact] = useState(false);
@@ -100,12 +100,12 @@ const ListingDetailModal = ({ listing, onClose, currentUser }) => {
     <div
       id="product-detail-modal-backdrop"
       onClick={onClose}
-      className="fixed inset-0 w-screen h-screen z-[999] bg-slate-900/65 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-hidden animate-fadeIn"
+      className="fixed inset-0 w-screen h-screen z-[999] bg-slate-950/65 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-hidden animate-fadeIn"
     >
       <div
         id="product-detail-modal-card"
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-3xl max-w-4xl w-full max-h-[88vh] border border-slate-200/80 shadow-2xl overflow-hidden flex flex-col md:flex-row relative my-auto text-left"
+        className="bg-white rounded-3xl max-w-4xl w-full max-h-[88vh] border border-slate-200 shadow-2xl overflow-hidden flex flex-col md:flex-row relative my-auto text-left"
       >
         {/* Wishlist Bookmark Button */}
         <button
@@ -133,26 +133,26 @@ const ListingDetailModal = ({ listing, onClose, currentUser }) => {
           onClick={onClose}
           type="button"
           aria-label="Close Modal"
-          className="absolute top-4 right-4 z-30 p-2.5 rounded-full bg-slate-100/90 hover:bg-slate-200 text-slate-700 hover:text-slate-900 shadow-sm transition-all cursor-pointer active:scale-95"
+          className="absolute top-4 right-4 z-30 p-2.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 shadow-sm transition-all cursor-pointer active:scale-95"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Left Column: Product Image & Badges */}
-        <div className="md:w-5/12 bg-slate-100/90 flex flex-col items-center justify-center p-5 sm:p-6 relative min-h-[220px] md:min-h-0 border-b md:border-b-0 md:border-r border-slate-200/80">
+        <div className="md:w-5/12 bg-slate-50 flex flex-col items-center justify-center p-5 sm:p-6 relative min-h-[220px] md:min-h-0 border-b md:border-b-0 md:border-r border-slate-200">
           <div className="absolute top-4 left-4 flex flex-wrap gap-1.5 z-10 max-w-[80%]">
             <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/95 backdrop-blur-md text-slate-800 shadow-sm border border-slate-200/60">
               {listing.category}
             </span>
             {isFree && (
-              <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-600 text-white shadow-md flex items-center gap-1 border border-emerald-500/50">
+              <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md flex items-center gap-1 border border-emerald-400/40">
                 🎁 FREE FOR JUNIORS
               </span>
             )}
             <span
               className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide shadow-sm uppercase ${
                 listing.status === 'AVAILABLE'
-                  ? 'bg-emerald-600 text-white'
+                  ? 'bg-slate-900 text-white'
                   : 'bg-amber-600 text-white'
               }`}
             >
@@ -173,7 +173,7 @@ const ListingDetailModal = ({ listing, onClose, currentUser }) => {
             />
             {isSold && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <span className="px-4 py-1.5 rounded-xl bg-amber-600 text-white font-black text-sm tracking-widest uppercase shadow-lg border border-amber-400/40">
+                <span className="px-4 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-black text-sm tracking-widest uppercase shadow-lg border border-amber-300">
                   SOLD OUT
                 </span>
               </div>
@@ -186,11 +186,11 @@ const ListingDetailModal = ({ listing, onClose, currentUser }) => {
           <div className="space-y-3">
             <div className="flex items-center justify-between flex-wrap gap-2 pr-10">
               <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="px-2.5 py-0.5 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
                   Condition: {listing.condition}
                 </span>
                 {isOwner && (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+                  <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
                     <Sparkles className="w-3 h-3 text-amber-600" />
                     Your Listing
                   </span>
@@ -212,15 +212,15 @@ const ListingDetailModal = ({ listing, onClose, currentUser }) => {
                     🎁 FREE FOR JUNIORS
                   </span>
                 ) : (
-                  <p className="text-2xl sm:text-3xl font-black text-emerald-700">
+                  <p className="font-mono text-2xl sm:text-3xl font-bold text-slate-900">
                     ₹{listing.price.toLocaleString()}
                   </p>
                 )}
               </div>
             </div>
 
-            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 max-h-32 overflow-y-auto">
-              <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 max-h-32 overflow-y-auto">
+              <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                 Item Description
               </h4>
               <p className="text-xs sm:text-sm text-slate-700 whitespace-pre-line leading-relaxed">
@@ -231,41 +231,41 @@ const ListingDetailModal = ({ listing, onClose, currentUser }) => {
 
           <div className="space-y-4 pt-2">
             {/* Seller Contact Card */}
-            <div className="p-3.5 bg-emerald-50/60 rounded-2xl border border-emerald-100 space-y-2.5">
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/90 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                   Verified Campus Seller
                 </span>
-                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full">
+                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200/60">
                   Student ID Verified
                 </span>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-sm shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center font-bold text-sm shadow-sm shrink-0">
                   {sellerName.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="font-bold text-slate-900 text-sm truncate">
                     {sellerName}
                   </h4>
-                  <p className="text-xs text-slate-600 flex items-center gap-1 truncate">
+                  <p className="text-xs text-slate-500 flex items-center gap-1 truncate">
                     <GraduationCap className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                     <span className="truncate">{sellerCollege}</span>
                   </p>
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-emerald-200/60 space-y-1.5 text-xs">
-                <div className="flex items-center gap-2 text-slate-700">
-                  <Mail className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <div className="pt-2 border-t border-slate-200/70 space-y-1.5 text-xs">
+                <div className="flex items-center gap-2 text-slate-600">
+                  <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   <span className="font-medium truncate">{sellerEmail}</span>
                 </div>
 
                 {sellerPhone && (
-                  <div className="flex items-center gap-2 text-slate-700">
-                    <Phone className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                     <span className="font-medium">{sellerPhone}</span>
                   </div>
                 )}
@@ -286,7 +286,7 @@ const ListingDetailModal = ({ listing, onClose, currentUser }) => {
                 <Link
                   to="/my-listings"
                   onClick={onClose}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-md shadow-amber-500/25 transition-all active:scale-95 cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-slate-900 hover:bg-emerald-600 text-white font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer"
                 >
                   <Edit className="w-4 h-4" />
                   Manage in My Listings

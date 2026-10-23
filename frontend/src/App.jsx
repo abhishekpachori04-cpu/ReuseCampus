@@ -31,9 +31,19 @@ function App() {
             </Routes>
           </main>
 
-          {/* Footer */}
-          <footer className="border-t border-slate-200 bg-white py-6 text-center text-xs text-slate-500">
-            <p>© {CURRENT_YEAR} ReuseCampus. Built for sustainable campus living.</p>
+          {/* Luxury Minimal Footer */}
+          <footer className="border-t border-slate-200/80 bg-white/80 backdrop-blur-md py-8 text-center text-xs text-slate-500">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                  R
+                </div>
+                <span className="font-bold text-slate-800">ReuseCampus</span>
+                <span className="text-slate-300">·</span>
+                <span className="text-slate-500 font-medium">Rustamji Institute of Technology (RJIT)</span>
+              </div>
+              <p className="font-medium text-slate-500">© {CURRENT_YEAR} ReuseCampus. Built for sustainable campus living.</p>
+            </div>
           </footer>
         </div>
       </Router>

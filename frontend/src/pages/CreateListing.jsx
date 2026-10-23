@@ -163,11 +163,15 @@ const CreateListing = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-xl shadow-slate-200/50 space-y-8">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative">
+      {/* Subtle ambient glows */}
+      <div className="absolute top-10 -left-16 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 -right-16 w-72 h-72 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="bg-white/95 backdrop-blur-md rounded-3xl p-6 sm:p-10 border border-slate-200/80 shadow-2xl shadow-slate-900/5 space-y-8 relative z-10">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold uppercase tracking-wider mb-2">
-            <PlusCircle className="w-3.5 h-3.5" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold uppercase tracking-wider mb-2">
+            <PlusCircle className="w-3.5 h-3.5 text-emerald-600" />
             Sell or Donate to Students
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
@@ -182,12 +186,12 @@ const CreateListing = () => {
           <div className="flex items-center justify-between p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-sm">
             <div className="flex items-center gap-2.5">
               <Lock className="w-5 h-5 text-amber-600 shrink-0" />
-              <span>You must be signed in to publish items.</span>
+              <span className="font-medium">You must be signed in to publish items.</span>
             </div>
             <Link
               to="/login"
               state={{ from: { pathname: '/create' } }}
-              className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl text-xs transition-colors shrink-0"
+              className="px-4 py-1.5 bg-slate-900 hover:bg-emerald-600 text-white font-bold rounded-xl text-xs transition-colors shrink-0 shadow-sm"
             >
               Sign In First
             </Link>
@@ -195,14 +199,14 @@ const CreateListing = () => {
         )}
 
         {errorMessage && (
-          <div className="flex items-start gap-2.5 p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm animate-fadeIn">
+          <div className="flex items-start gap-2.5 p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl text-sm font-medium animate-fadeIn">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
             <span>{errorMessage}</span>
           </div>
         )}
 
         {successMessage && (
-          <div className="flex items-center gap-2.5 p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-sm animate-fadeIn">
+          <div className="flex items-center gap-2.5 p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-sm font-medium animate-fadeIn">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
             <span>{successMessage}</span>
           </div>
@@ -211,7 +215,7 @@ const CreateListing = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Title */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
               Item Title *
             </label>
             <input
@@ -221,21 +225,21 @@ const CreateListing = () => {
               onChange={handleChange}
               placeholder="e.g. Thomas Calculus 14th Edition with Solution Manual"
               required
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white text-sm transition-all"
             />
           </div>
 
           {/* Category & Condition Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                 Category *
               </label>
               <select
                 name="category"
                 value={formData.category}
                 onChange={handleChange}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white text-sm transition-all cursor-pointer"
               >
                 {CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
@@ -246,14 +250,14 @@ const CreateListing = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                 Condition *
               </label>
               <select
                 name="condition"
                 value={formData.condition}
                 onChange={handleChange}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white text-sm transition-all cursor-pointer"
               >
                 {CONDITIONS.map((cond) => (
                   <option key={cond} value={cond}>
@@ -301,7 +305,7 @@ const CreateListing = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                 Price (₹) *
               </label>
               <div className="relative">
@@ -315,10 +319,10 @@ const CreateListing = () => {
                   placeholder={isFreeDonation ? '0 (Free Donation to Juniors)' : '0 (Set 0 for free giveaway)'}
                   min="0"
                   required
-                  className={`w-full pl-10 pr-4 py-3 rounded-xl border text-sm transition-all ${
+                  className={`w-full pl-10 pr-4 py-3 rounded-xl border text-sm font-mono transition-all ${
                     isFreeDonation
                       ? 'bg-emerald-50/50 border-emerald-300 text-emerald-800 font-bold cursor-not-allowed'
-                      : 'border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500'
+                      : 'border-slate-200 bg-slate-50/50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white'
                   }`}
                 />
               </div>
@@ -328,13 +332,13 @@ const CreateListing = () => {
           {/* Item Photo Upload Section */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                 Item Photo *
               </label>
               <button
                 type="button"
                 onClick={() => setShowUrlInput(!showUrlInput)}
-                className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1 cursor-pointer"
+                className="text-xs text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-1 cursor-pointer"
               >
                 <LinkIcon className="w-3 h-3" />
                 {showUrlInput ? 'Hide URL paste' : 'Or paste image URL'}
@@ -365,7 +369,7 @@ const CreateListing = () => {
                   )}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">
+                  <p className="text-sm font-bold text-slate-800">
                     {compressing ? 'Optimizing photo...' : 'Upload Item Photo from Device'}
                   </p>
                   <p className="text-xs text-slate-500 mt-0.5">
@@ -428,8 +432,8 @@ const CreateListing = () => {
 
             {/* Quick Image Presets */}
             <div className="space-y-1.5 pt-1">
-              <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-emerald-500" /> Or pick a sample campus photo:
+              <span className="text-[11px] font-semibold text-slate-400 flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-500" /> Or pick a sample campus photo:
               </span>
               <div className="flex flex-wrap gap-2">
                 {imagePresets.map((preset) => (
@@ -437,7 +441,7 @@ const CreateListing = () => {
                     key={preset.name}
                     type="button"
                     onClick={() => handleSelectPreset(preset.url, preset.name)}
-                    className="px-2.5 py-1 text-xs bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 rounded-lg text-slate-600 transition-colors cursor-pointer"
+                    className="px-2.5 py-1 text-xs bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 rounded-lg text-slate-600 font-medium transition-colors cursor-pointer"
                   >
                     {preset.name}
                   </button>
@@ -448,7 +452,7 @@ const CreateListing = () => {
 
           {/* Description */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
               Item Description *
             </label>
             <textarea
@@ -458,15 +462,15 @@ const CreateListing = () => {
               onChange={handleChange}
               placeholder="Describe what condition the item is in, any markings, reason for selling, and where you can meet on campus (e.g. Student Union or Library)..."
               required
-              className="w-full p-4 rounded-xl border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+              className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white text-sm transition-all"
             />
           </div>
 
-          {/* Submit */}
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading || !isAuthenticated}
-            className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:text-slate-500 text-white font-semibold py-3.5 px-6 rounded-xl shadow-lg shadow-emerald-600/25 transition-all active:scale-95 text-base cursor-pointer disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-emerald-600 disabled:bg-slate-300 disabled:text-slate-500 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg transition-all active:scale-95 text-base cursor-pointer disabled:cursor-not-allowed"
           >
             {loading ? (
               <>
@@ -475,7 +479,7 @@ const CreateListing = () => {
               </>
             ) : (
               <>
-                <CheckCircle2 className="w-5 h-5" />
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                 Publish Listing
               </>
             )}
@@ -487,5 +491,3 @@ const CreateListing = () => {
 };
 
 export default CreateListing;
-
-

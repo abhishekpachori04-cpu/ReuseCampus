@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Sparkles,
-  ArrowRight,
   ShieldCheck,
   Coins,
   RefreshCw,
   Loader2,
   PackageOpen,
-  Search,
   RotateCcw,
+  Gift,
+  MessageCircle,
+  Package,
 } from 'lucide-react';
 import API from '../services/api';
 import useAuth from '../context/useAuth';
@@ -21,7 +21,8 @@ import ListingFilterBar from '../components/listings/ListingFilterBar';
 import ListingSkeleton from '../components/ui/ListingSkeleton';
 
 /**
- * Main campus marketplace discovery feed with pagination and skeleton loading
+ * Main campus marketplace discovery feed with compact Light Emerald Split Hero,
+ * unified filter bar, and immediate product visibility.
  */
 const Home = () => {
   const { user } = useAuth();
@@ -141,79 +142,150 @@ const Home = () => {
     setIsSavedOnly(false);
   };
 
+  const handleExploreFreeDonations = () => {
+    setIsFreeOnly(true);
+    setIsSavedOnly(false);
+    const feedElement = document.getElementById('browse-feed');
+    feedElement?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
-    <div className="space-y-12 pb-16">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-emerald-50/70 via-white to-slate-50 pt-16 pb-20 border-b border-slate-200">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-100/70 border border-emerald-200 text-emerald-800 text-xs font-semibold uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            Verified Campus-Only Second Hand Community
-          </div>
+    <div className="space-y-6 sm:space-y-8 pb-16">
+      {/* Cohesive Light Emerald Split Hero Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6">
+        <div className="bg-gradient-to-br from-emerald-50/90 via-teal-50/40 to-white border border-emerald-200/70 rounded-3xl p-6 lg:p-10 shadow-sm relative overflow-hidden">
+          {/* Soft, light decorative background accents */}
+          <div className="absolute -top-20 -left-20 w-80 h-80 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-teal-400/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute inset-0 bg-dot-pattern opacity-35 pointer-events-none" />
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-tight">
-            Buy, Sell & Pass Down Items <br />
-            <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
-              Right On Your Campus
-            </span>
-          </h1>
+          {/* 2-Column Split Grid */}
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
+            {/* Left Column: Headline & Action Buttons */}
+            <div className="lg:col-span-7 text-left space-y-4">
+              {/* Top Pill Badge */}
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/80 text-emerald-800 border border-emerald-300/60 text-xs font-bold tracking-wide uppercase shadow-sm">
+                <span>🎓</span>
+                <span>Official RJIT Tekanpur Student Marketplace</span>
+              </div>
 
-          <p className="max-w-2xl mx-auto text-lg text-slate-600 leading-relaxed">
-            ReuseCampus connects students to trade textbooks, gadgets, hostel furniture,
-            and gear safely within your verified college community. Save money and cut waste!
-          </p>
+              {/* Headline */}
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-[1.15]">
+                Buy, Sell & Pass Down <br />
+                <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                  Campus Essentials.
+                </span>
+              </h1>
 
-          {/* Quick Hero Search */}
-          <div className="max-w-2xl mx-auto mt-6">
-            <div className="relative flex items-center bg-white rounded-2xl shadow-xl shadow-slate-200/60 border border-slate-200 p-2 focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-emerald-500 transition-all">
-              <Search className="w-5 h-5 text-slate-400 ml-3 shrink-0" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search calculus books, mini fridge, scientific calculator, cycles..."
-                className="w-full px-3 py-2.5 bg-transparent text-slate-800 placeholder-slate-400 focus:outline-none text-sm sm:text-base"
-              />
-              <a
-                href="#browse-feed"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-emerald-600/20 active:scale-95 shrink-0 cursor-pointer"
-              >
-                Search
-              </a>
+              {/* Subheading */}
+              <p className="text-slate-600 text-sm sm:text-base leading-relaxed max-w-xl font-normal">
+                Connect directly with verified students at RJIT Tekanpur to trade textbooks, calculators,
+                engineering drafters, and hostel gear safely with zero middleman fees.
+              </p>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <Link
+                  to="/create"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm shadow-md shadow-emerald-600/20 active:scale-95 transition-all"
+                >
+                  List an Item for Free →
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleExploreFreeDonations}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-sm shadow-sm hover:shadow transition-all active:scale-95 cursor-pointer"
+                >
+                  Explore Free Donations 🎁
+                </button>
+              </div>
             </div>
-          </div>
 
-          {/* Call to Actions */}
-          <div className="flex flex-wrap justify-center gap-4 pt-4">
-            <Link
-              to="/create"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-lg shadow-emerald-600/25 transition-all active:scale-95"
-            >
-              List an Item for Free
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-            <a
-              href="#browse-feed"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm border border-slate-300 shadow-sm transition-all"
-            >
-              Browse Campus Listings
-            </a>
+            {/* Right Column: 2x2 Bento Grid of Frosted White Trust Cards */}
+            <div className="lg:col-span-5 grid grid-cols-2 gap-3 sm:gap-3.5">
+              {/* Card 1: 100% @rjit.ac.in Verified */}
+              <div className="bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-emerald-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-2">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900">
+                    100% @rjit.ac.in Verified
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                    Student gatekeeping
+                  </p>
+                </div>
+              </div>
+
+              {/* Card 2: ₹0 Junior Donations */}
+              <div className="bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-emerald-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-2">
+                <div className="w-9 h-9 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center shrink-0">
+                  <Gift className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900">
+                    ₹0 Junior Donations
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                    Pass down notes & drafters
+                  </p>
+                </div>
+              </div>
+
+              {/* Card 3: Direct WhatsApp Deal */}
+              <div className="bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-emerald-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-2">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                  <MessageCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900">
+                    Direct WhatsApp Deal
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                    Instant handover, 0% fee
+                  </p>
+                </div>
+              </div>
+
+              {/* Card 4: Dynamic Active Items Count */}
+              <div className="bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-emerald-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-2">
+                <div className="w-9 h-9 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center shrink-0">
+                  <Package className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900">
+                    {totalCount > 0 ? `${totalCount} Active Items` : 'Active Items'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                    Live on RJIT marketplace
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Main Marketplace Feed */}
-      <section id="browse-feed" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Campus Marketplace Feed
-          </h2>
-          <p className="text-sm text-slate-500">
-            Fresh second-hand items listed by verified students
-          </p>
+      {/* Main Marketplace Feed with Immediate Product Grid Visibility */}
+      <section id="browse-feed" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+              Campus Marketplace Feed
+            </h2>
+            <p className="text-sm text-slate-500 mt-0.5">
+              Fresh second-hand items listed by verified students at RJIT Tekanpur
+            </p>
+          </div>
+          {totalCount > 0 && (
+            <span className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-3 py-1 rounded-full w-fit">
+              {totalCount} item{totalCount === 1 ? '' : 's'} available
+            </span>
+          )}
         </div>
 
-        {/* Modular Filter & Search Bar with Free & Wishlist Quick Toggles */}
+        {/* Unified Command-Style Filter & Search Bar */}
         <ListingFilterBar
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -234,7 +306,7 @@ const Home = () => {
 
         {/* Error notification banner */}
         {error && (
-          <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm">
+          <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-sm font-medium">
             {error}
           </div>
         )}
@@ -242,12 +314,12 @@ const Home = () => {
         {/* Listings Display Grid or Skeletons */}
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {Array.from({ length: 6 }).map((_, index) => (
+            {Array.from({ length: 8 }).map((_, index) => (
               <ListingSkeleton key={index} />
             ))}
           </div>
         ) : listings.length === 0 ? (
-          <div className="py-16 px-4 bg-white rounded-3xl border border-dashed border-slate-300 text-center space-y-4">
+          <div className="py-16 px-4 bg-white rounded-3xl border border-dashed border-slate-300 text-center space-y-4 shadow-sm">
             <div className="w-14 h-14 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto">
               <PackageOpen className="w-7 h-7" />
             </div>
@@ -261,7 +333,7 @@ const Home = () => {
                   <button
                     type="button"
                     onClick={handleResetAllFilters}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-md transition-all cursor-pointer"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     Reset All Filters & Browse Marketplace
@@ -285,7 +357,7 @@ const Home = () => {
                   </button>
                   <Link
                     to="/create"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 transition-all"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all"
                   >
                     🎁 Donate an Item Free
                   </Link>
@@ -301,14 +373,14 @@ const Home = () => {
                   <button
                     type="button"
                     onClick={handleResetAllFilters}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-md transition-all cursor-pointer"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all cursor-pointer border border-slate-200"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     Reset All Filters
                   </button>
                   <Link
                     to="/create"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 transition-all"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all"
                   >
                     Post an Item
                   </Link>
@@ -335,7 +407,7 @@ const Home = () => {
                   type="button"
                   onClick={handleLoadMore}
                   disabled={loadingMore}
-                  className="inline-flex items-center gap-2 px-7 py-3 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 font-bold text-sm border border-slate-200 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-2 px-7 py-3 rounded-2xl bg-white hover:bg-emerald-50 text-slate-800 hover:text-emerald-800 font-bold text-sm border border-slate-200 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
                 >
                   {loadingMore ? (
                     <>
@@ -346,7 +418,7 @@ const Home = () => {
                     <>
                       <span>Load More Items</span>
                       {totalCount > 0 && (
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/60">
                           {listings.length} of {totalCount}
                         </span>
                       )}
@@ -369,35 +441,35 @@ const Home = () => {
       )}
 
       {/* Sustainable Campus Value Props */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-6 bg-white rounded-2xl border border-slate-200 space-y-3">
-            <div className="w-10 h-10 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
-              <ShieldCheck className="w-5 h-5" />
+          <div className="p-6 bg-white rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center">
+              <ShieldCheck className="w-6 h-6" />
             </div>
-            <h3 className="font-bold text-slate-800">Verified College Students</h3>
-            <p className="text-sm text-slate-600">
-              Only users with official .edu or .ac institutional domains can register and trade.
+            <h3 className="font-bold text-slate-900 text-base">Verified College Students</h3>
+            <p className="text-sm text-slate-500 leading-relaxed">
+              Only students with official @rjit.ac.in institutional accounts can trade, guaranteeing safety and trust.
             </p>
           </div>
 
-          <div className="p-6 bg-white rounded-2xl border border-slate-200 space-y-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <Coins className="w-5 h-5" />
+          <div className="p-6 bg-white rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <Coins className="w-6 h-6" />
             </div>
-            <h3 className="font-bold text-slate-800">Zero Middleman Commissions</h3>
-            <p className="text-sm text-slate-600">
-              Direct peer-to-peer exchange. Pay and receive 100% of the agreed price instantly.
+            <h3 className="font-bold text-slate-900 text-base">Zero Middleman Commissions</h3>
+            <p className="text-sm text-slate-500 leading-relaxed">
+              Direct peer-to-peer exchange right on campus. 100% of the agreed price goes straight to the student seller.
             </p>
           </div>
 
-          <div className="p-6 bg-white rounded-2xl border border-slate-200 space-y-3">
-            <div className="w-10 h-10 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center">
-              <RefreshCw className="w-5 h-5" />
+          <div className="p-6 bg-white rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-cyan-50 text-cyan-600 flex items-center justify-center">
+              <RefreshCw className="w-6 h-6" />
             </div>
-            <h3 className="font-bold text-slate-800">Sustainable Campus Living</h3>
-            <p className="text-sm text-slate-600">
-              Reduce campus waste by passing down textbooks, furniture, and gadgets to juniors.
+            <h3 className="font-bold text-slate-900 text-base">Sustainable Campus Living</h3>
+            <p className="text-sm text-slate-500 leading-relaxed">
+              Prevent hostel waste by passing down textbooks, calculators, and lab tools to upcoming batches.
             </p>
           </div>
         </div>

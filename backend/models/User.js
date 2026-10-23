@@ -75,6 +75,18 @@ const userSchema = new mongoose.Schema(
       default:
         'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
     },
+    resetOtpHash: {
+      type: String,
+      default: null,
+    },
+    resetOtpExpires: {
+      type: Date,
+      default: null,
+    },
+    resetOtpAttempts: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,
@@ -85,6 +97,7 @@ const userSchema = new mongoose.Schema(
 userSchema.methods.toJSON = function () {
   const user = this.toObject();
   delete user.passwordHash;
+  delete user.resetOtpHash;
   return user;
 };
 
