@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserPlus, Mail, Lock, User, Building, Phone, AlertCircle, Loader2 } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, Building, Phone, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
 import useAuth from '../context/useAuth';
 import { COLLEGES, DEFAULT_COLLEGE } from '../constants/campusConstants';
 
@@ -88,6 +88,19 @@ const Register = () => {
       <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-md w-full bg-white/95 backdrop-blur-md rounded-3xl p-8 border border-slate-200/80 shadow-2xl shadow-slate-900/5 space-y-6 relative z-10">
+        {/* Sleek Top-Left Back Navigation Button */}
+        <div>
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-emerald-700 transition-colors cursor-pointer group"
+            aria-label="Go Back"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform text-slate-400 group-hover:text-emerald-600" />
+            <span>Back</span>
+          </button>
+        </div>
+
         <div className="text-center space-y-2">
           <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-700 text-white rounded-2xl flex items-center justify-center mx-auto mb-2 shadow-md shadow-emerald-500/20">
             <UserPlus className="w-6 h-6" />

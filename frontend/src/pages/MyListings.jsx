@@ -19,6 +19,7 @@ import {
   ExternalLink,
   AlertTriangle,
   ArrowUpRight,
+  ArrowLeft,
 } from 'lucide-react';
 import API from '../services/api';
 import useAuth from '../context/useAuth';
@@ -694,6 +695,15 @@ const MyListings = () => {
             </button>
 
             <div>
+              <button
+                type="button"
+                onClick={() => setEditingListing(null)}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-emerald-700 transition-colors cursor-pointer group mb-2.5"
+                aria-label="Back"
+              >
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                <span>Back</span>
+              </button>
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 uppercase tracking-wider border border-emerald-200">
                 <Edit3 className="w-3 h-3" />
                 Edit Listing

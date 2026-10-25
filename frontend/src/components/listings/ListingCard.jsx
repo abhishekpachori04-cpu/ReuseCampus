@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clock, Heart, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Clock, Heart, CheckCircle2, ArrowRight, Share2, Check } from 'lucide-react';
 import useWishlist from '../../hooks/useWishlist';
 
 const FALLBACK_IMAGE =
@@ -10,6 +10,7 @@ const FALLBACK_IMAGE =
  */
 const ListingCard = ({ item, onSelect }) => {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [copiedShare, setCopiedShare] = useState(false);
   const { isWishlisted, toggleWishlist } = useWishlist();
 
   const isSold = item.status === 'SOLD';
@@ -18,6 +19,44 @@ const ListingCard = ({ item, onSelect }) => {
 
   const sellerInitial = item.seller?.name ? item.seller.name.charAt(0).toUpperCase() : 'S';
   const sellerName = item.seller?.name || 'RJIT Student';
+
+  // Native Web Share with Clipboard Fallback
+  const handleShare = async (e) => {
+    e.stopPropagation();
+    const shareUrl = `${window.location.origin}/?item=${item._id}`;
+    const priceText = isFree ? 'FREE' : `₹${item.price}`;
+    const shareData = {
+      title: item.title,
+      text: `${item.title} - ${priceText} (${item.condition}) on ReuseCampus RJIT`,
+      url: shareUrl,
+    };
+
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = shareUrl;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopiedShare(true);
+      setTimeout(() => setCopiedShare(false), 2200);
+    } catch {
+      // ignore
+    }
+  };
 
   return (
     <article
@@ -55,8 +94,36 @@ const ListingCard = ({ item, onSelect }) => {
           )}
         </div>
 
-        {/* Top-Right Heart Wishlist Button */}
-        <div className="absolute top-2.5 right-2.5 z-10">
+        {/* Top-Right Action Buttons: Share & Wishlist */}
+        <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1.5">
+          {/* Native Share Button */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={handleShare}
+              aria-label="Share listing"
+              className={`p-2 rounded-full backdrop-blur-md transition-all duration-200 cursor-pointer shadow-md ${
+                copiedShare
+                  ? 'bg-emerald-600 text-white shadow-emerald-500/30 scale-105'
+                  : 'bg-white/85 text-slate-600 hover:text-emerald-700 hover:bg-white hover:scale-105'
+              }`}
+              title={copiedShare ? 'Link Copied!' : 'Share listing'}
+            >
+              {copiedShare ? (
+                <Check className="w-4 h-4 stroke-[2.5]" />
+              ) : (
+                <Share2 className="w-4 h-4" />
+              )}
+            </button>
+
+            {copiedShare && (
+              <span className="absolute -bottom-7 right-0 px-2 py-0.5 bg-slate-900 text-white text-[10px] font-bold rounded-md shadow-lg whitespace-nowrap animate-fadeIn pointer-events-none z-30">
+                Link Copied!
+              </span>
+            )}
+          </div>
+
+          {/* Heart Wishlist Button */}
           <button
             type="button"
             onClick={(e) => {
@@ -67,7 +134,7 @@ const ListingCard = ({ item, onSelect }) => {
             className={`p-2 rounded-full backdrop-blur-md transition-all duration-200 cursor-pointer shadow-md ${
               isSaved
                 ? 'bg-white text-rose-500 shadow-rose-500/20 scale-105'
-                : 'bg-white/80 text-slate-500 hover:text-rose-500 hover:bg-white hover:scale-105'
+                : 'bg-white/85 text-slate-500 hover:text-rose-500 hover:bg-white hover:scale-105'
             }`}
             title={isSaved ? 'Remove from wishlist' : 'Save to wishlist'}
           >

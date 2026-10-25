@@ -16,6 +16,7 @@ import {
   EyeOff,
   KeyRound,
   Sparkles,
+  ArrowLeft,
 } from 'lucide-react';
 import useAuth from '../context/useAuth';
 import API from '../services/api';
@@ -331,6 +332,19 @@ const Login = () => {
       <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-md w-full bg-white/95 backdrop-blur-md rounded-3xl p-8 border border-slate-200/80 shadow-2xl shadow-slate-900/5 space-y-6 relative z-10">
+        {/* Sleek Top-Left Back Navigation Button */}
+        <div>
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-emerald-700 transition-colors cursor-pointer group"
+            aria-label="Go Back"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform text-slate-400 group-hover:text-emerald-600" />
+            <span>Back</span>
+          </button>
+        </div>
+
         <div className="text-center space-y-2">
           <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-700 text-white rounded-2xl flex items-center justify-center mx-auto mb-2 shadow-md shadow-emerald-500/20">
             <GraduationCap className="w-6 h-6" />
@@ -467,8 +481,25 @@ const Login = () => {
               />
             </div>
 
-            {/* Modal Header */}
+            {/* Modal Header & Back Navigation */}
             <div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (recoveryStep > 1) {
+                    setRecoveryStep((prev) => prev - 1);
+                    setRecoveryError('');
+                  } else {
+                    handleCloseRecovery();
+                  }
+                }}
+                className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-emerald-700 transition-colors cursor-pointer group mb-2.5"
+                aria-label="Back"
+              >
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                <span>{recoveryStep > 1 ? 'Back to previous step' : 'Back to Login'}</span>
+              </button>
+
               {recoveryStep === 1 && (
                 <>
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold uppercase tracking-wider mb-2">

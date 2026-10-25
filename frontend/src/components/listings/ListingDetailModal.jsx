@@ -15,6 +15,8 @@ import {
   Edit,
   AlertCircle,
   Heart,
+  ArrowLeft,
+  Share2,
 } from 'lucide-react';
 import useWishlist from '../../hooks/useWishlist';
 
@@ -26,6 +28,7 @@ const FALLBACK_IMAGE =
  */
 const ListingDetailModal = ({ listing, onClose, currentUser }) => {
   const [copiedContact, setCopiedContact] = useState(false);
+  const [shareToast, setShareToast] = useState(false);
   const { isWishlisted, toggleWishlist } = useWishlist();
 
   // Lock body scroll and register escape key dismiss listener
@@ -96,6 +99,44 @@ const ListingDetailModal = ({ listing, onClose, currentUser }) => {
     return `mailto:${sellerEmail}?subject=${subject}&body=${body}`;
   };
 
+  // Native Web Share with Clipboard Fallback
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/?item=${listing._id}`;
+    const priceText = isFree ? 'FREE' : `₹${listing.price}`;
+    const shareData = {
+      title: listing.title,
+      text: `${listing.title} - ${priceText} (${listing.condition}) on ReuseCampus RJIT`,
+      url: shareUrl,
+    };
+
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    // Fallback: Copy link to clipboard
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = shareUrl;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setShareToast(true);
+      setTimeout(() => setShareToast(false), 2400);
+    } catch {
+      // ignore
+    }
+  };
+
   return createPortal(
     <div
       id="product-detail-modal-backdrop"
@@ -107,40 +148,78 @@ const ListingDetailModal = ({ listing, onClose, currentUser }) => {
         onClick={(e) => e.stopPropagation()}
         className="bg-white rounded-3xl max-w-4xl w-full max-h-[88vh] border border-slate-200 shadow-2xl overflow-hidden flex flex-col md:flex-row relative my-auto text-left"
       >
-        {/* Wishlist Bookmark Button */}
+        {/* Sleek Top-Left Back Button */}
         <button
-          onClick={() => toggleWishlist(listing._id)}
-          type="button"
-          aria-label={isSaved ? 'Remove from Wishlist' : 'Save to Wishlist'}
-          className={`absolute top-4 right-16 z-30 px-3 py-2 rounded-full shadow-sm transition-all cursor-pointer active:scale-95 flex items-center gap-1.5 text-xs font-bold ${
-            isSaved
-              ? 'bg-rose-50 text-rose-600 border border-rose-200'
-              : 'bg-white/95 hover:bg-rose-50 hover:text-rose-600 text-slate-700 border border-slate-200'
-          }`}
-          title={isSaved ? 'Remove from Wishlist' : 'Save to Wishlist'}
-        >
-          <Heart
-            className={`w-4 h-4 transition-transform duration-200 ${
-              isSaved ? 'fill-rose-500 text-rose-500 scale-110' : ''
-            }`}
-          />
-          <span className="hidden sm:inline">{isSaved ? 'Saved' : 'Save'}</span>
-        </button>
-
-        {/* Close Button */}
-        <button
-          id="modal-close-button"
+          id="modal-back-button"
           onClick={onClose}
           type="button"
-          aria-label="Close Modal"
-          className="absolute top-4 right-4 z-30 p-2.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 shadow-sm transition-all cursor-pointer active:scale-95"
+          aria-label="Go Back"
+          className="absolute top-4 left-4 z-30 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 shadow-sm border border-slate-200/90 transition-all cursor-pointer active:scale-95 text-xs font-bold backdrop-blur-md group"
+          title="Go back"
         >
-          <X className="w-5 h-5" />
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+          <span>Back</span>
         </button>
+
+        {/* Top-Right Control Actions: Share, Save, Close */}
+        <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
+          {/* Share Button */}
+          <button
+            id="modal-share-button"
+            onClick={handleShare}
+            type="button"
+            aria-label="Share Listing"
+            className="px-3 py-1.5 rounded-full bg-white/95 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200/90 shadow-sm transition-all cursor-pointer active:scale-95 flex items-center gap-1.5 text-xs font-bold"
+            title="Share listing"
+          >
+            <Share2 className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="hidden sm:inline">Share</span>
+          </button>
+
+          {/* Wishlist Bookmark Button */}
+          <button
+            onClick={() => toggleWishlist(listing._id)}
+            type="button"
+            aria-label={isSaved ? 'Remove from Wishlist' : 'Save to Wishlist'}
+            className={`px-3 py-1.5 rounded-full shadow-sm transition-all cursor-pointer active:scale-95 flex items-center gap-1.5 text-xs font-bold ${
+              isSaved
+                ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                : 'bg-white/95 hover:bg-rose-50 hover:text-rose-600 text-slate-700 border border-slate-200/90'
+            }`}
+            title={isSaved ? 'Remove from Wishlist' : 'Save to Wishlist'}
+          >
+            <Heart
+              className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                isSaved ? 'fill-rose-500 text-rose-500 scale-110' : ''
+              }`}
+            />
+            <span className="hidden sm:inline">{isSaved ? 'Saved' : 'Save'}</span>
+          </button>
+
+          {/* Close Button */}
+          <button
+            id="modal-close-button"
+            onClick={onClose}
+            type="button"
+            aria-label="Close Modal"
+            className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 shadow-sm transition-all cursor-pointer active:scale-95"
+            title="Close"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Floating Toast Notification for Link Copied */}
+        {shareToast && (
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 bg-slate-900/95 backdrop-blur-md text-white text-xs font-bold rounded-2xl shadow-2xl border border-emerald-500/30 animate-fadeIn pointer-events-none">
+            <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>Listing Link Copied to Clipboard!</span>
+          </div>
+        )}
 
         {/* Left Column: Product Image & Badges */}
         <div className="md:w-5/12 bg-slate-50 flex flex-col items-center justify-center p-5 sm:p-6 relative min-h-[220px] md:min-h-0 border-b md:border-b-0 md:border-r border-slate-200">
-          <div className="absolute top-4 left-4 flex flex-wrap gap-1.5 z-10 max-w-[80%]">
+          <div className="absolute top-14 left-4 flex flex-wrap gap-1.5 z-10 max-w-[80%]">
             <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/95 backdrop-blur-md text-slate-800 shadow-sm border border-slate-200/60">
               {listing.category}
             </span>

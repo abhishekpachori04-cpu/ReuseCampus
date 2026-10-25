@@ -18,6 +18,7 @@ import {
   Check,
   AlertCircle,
   CheckCircle2,
+  ArrowLeft,
 } from 'lucide-react';
 import useAuth from '../context/useAuth';
 
@@ -169,7 +170,7 @@ const Navbar = () => {
             <div className="hidden md:flex items-center gap-3 pl-3 border-l border-slate-200/80">
               {isAuthenticated ? (
                 <div className="flex items-center gap-2.5">
-                  {/* Verified Student ID Badge Chip */}
+                  {/* Sleek Circular Avatar Badge with Initial */}
                   <button
                     type="button"
                     onClick={() => {
@@ -177,23 +178,19 @@ const Navbar = () => {
                       setProfileSuccess('');
                       setIsProfileOpen(true);
                     }}
-                    className="flex items-center gap-2.5 px-3 py-1.5 bg-slate-50 hover:bg-emerald-50/60 rounded-xl transition-all cursor-pointer group text-left border border-slate-200/90 hover:border-emerald-300 shadow-sm"
-                    title="Click to view and edit your Campus Student ID"
+                    className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-extrabold text-sm shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/35 ring-2 ring-emerald-500/30 hover:ring-emerald-500/70 transition-all duration-200 flex items-center justify-center cursor-pointer active:scale-95 group"
+                    title={`${user?.name || 'Campus Student'} - Click to manage profile`}
+                    aria-label="User Profile"
                   >
-                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center font-bold text-xs shadow-sm group-hover:scale-105 transition-transform">
-                      {user?.name ? user.name.charAt(0).toUpperCase() : <User className="w-3.5 h-3.5" />}
-                    </div>
-                    <div className="flex flex-col text-left">
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs font-bold text-slate-800 leading-tight group-hover:text-emerald-700 transition-colors">
-                          {user?.name || 'Campus Student'}
-                        </span>
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                      </div>
-                      <span className="text-[10px] text-slate-500 font-medium leading-tight truncate max-w-[120px]">
-                        {user?.college || user?.email}
-                      </span>
-                    </div>
+                    <span>
+                      {user?.name ? user.name.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+                    </span>
+                    <span
+                      className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full flex items-center justify-center text-white shadow-xs"
+                      title="Verified Student"
+                    >
+                      <Check className="w-2 h-2 stroke-[3]" />
+                    </span>
                   </button>
 
                   <button
@@ -364,16 +361,27 @@ const Navbar = () => {
               <X className="w-5 h-5" />
             </button>
 
-            {/* Modal Header */}
+            {/* Modal Header with Back Button */}
             <div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 uppercase tracking-wider border border-emerald-200">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                Verified Student
+              <button
+                type="button"
+                onClick={() => setIsProfileOpen(false)}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-emerald-700 transition-colors cursor-pointer group mb-2"
+                aria-label="Back"
+              >
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                <span>Back</span>
+              </button>
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 uppercase tracking-wider border border-emerald-200">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  Verified Student
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mt-2">My Campus Profile</h3>
+                <p className="text-xs text-slate-500">
+                  Manage your student identity and contact information for peer trades.
+                </p>
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mt-2">My Campus Profile</h3>
-              <p className="text-xs text-slate-500">
-                Manage your student identity and contact information for peer trades.
-              </p>
             </div>
 
             {/* Profile Avatar Card */}

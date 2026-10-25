@@ -126,6 +126,37 @@ const Home = () => {
     };
   }, [fetchListings]);
 
+  // Handle shared link with ?item=<id>
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const sharedItemId = searchParams.get('item');
+    if (!sharedItemId) return;
+
+    let ignore = false;
+    const fetchSharedListing = async () => {
+      // First check if already in loaded listings
+      const found = listings.find((l) => String(l._id) === String(sharedItemId));
+      if (found) {
+        setSelectedListing(found);
+        return;
+      }
+
+      try {
+        const res = await API.get(`/listings/${sharedItemId}`);
+        if (!ignore && res.data?.success && res.data?.data) {
+          setSelectedListing(res.data.data);
+        }
+      } catch {
+        // Silently ignore if shared item is no longer available
+      }
+    };
+
+    fetchSharedListing();
+    return () => {
+      ignore = true;
+    };
+  }, [listings]);
+
   const handleLoadMore = () => {
     if (!loadingMore && hasMore) {
       fetchListings(page + 1, true);
@@ -435,7 +466,16 @@ const Home = () => {
       {selectedListing && (
         <ListingDetailModal
           listing={selectedListing}
-          onClose={() => setSelectedListing(null)}
+          onClose={() => {
+            setSelectedListing(null);
+            const searchParams = new URLSearchParams(window.location.search);
+            if (searchParams.has('item')) {
+              searchParams.delete('item');
+              const newSearch = searchParams.toString();
+              const newUrl = window.location.pathname + (newSearch ? `?${newSearch}` : '');
+              window.history.replaceState({}, '', newUrl);
+            }
+          }}
           currentUser={user}
         />
       )}
