@@ -8,13 +8,15 @@ import CreateListing from './pages/CreateListing';
 import MyListings from './pages/MyListings';
 import NotFound from './pages/NotFound';
 import { AuthProvider } from './context/AuthContext';
+import { WishlistProvider } from './context/WishlistContext';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <WishlistProvider>
+        <Router>
         <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
           {/* Responsive Navigation Bar */}
           <Navbar />
@@ -47,6 +49,7 @@ function App() {
           </footer>
         </div>
       </Router>
+      </WishlistProvider>
     </AuthProvider>
   );
 }

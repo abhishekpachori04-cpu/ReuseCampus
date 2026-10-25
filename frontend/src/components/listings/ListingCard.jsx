@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Clock, Heart, CheckCircle2, ArrowRight, Share2, Check } from 'lucide-react';
-import useWishlist from '../../hooks/useWishlist';
+import useWishlist from '../../context/useWishlist';
 
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';
@@ -11,11 +11,11 @@ const FALLBACK_IMAGE =
 const ListingCard = ({ item, onSelect }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
-  const { isWishlisted, toggleWishlist } = useWishlist();
+  const { isSaved: checkIsSaved, toggleSaveItem } = useWishlist();
 
   const isSold = item.status === 'SOLD';
   const isFree = Number(item.price) === 0;
-  const isSaved = isWishlisted(item._id);
+  const isSaved = checkIsSaved(item._id);
 
   const sellerInitial = item.seller?.name ? item.seller.name.charAt(0).toUpperCase() : 'S';
   const sellerName = item.seller?.name || 'RJIT Student';
@@ -128,19 +128,19 @@ const ListingCard = ({ item, onSelect }) => {
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              toggleWishlist(item._id);
+              toggleSaveItem(item._id);
             }}
             aria-label={isSaved ? 'Remove from wishlist' : 'Save to wishlist'}
-            className={`p-2 rounded-full backdrop-blur-md transition-all duration-200 cursor-pointer shadow-md ${
+            className={`p-2 rounded-full backdrop-blur-md transition-all duration-200 cursor-pointer shadow-md active:scale-90 ${
               isSaved
-                ? 'bg-white text-rose-500 shadow-rose-500/20 scale-105'
-                : 'bg-white/85 text-slate-500 hover:text-rose-500 hover:bg-white hover:scale-105'
+                ? 'bg-white text-red-500 shadow-red-500/25 scale-105'
+                : 'bg-white/85 text-slate-500 hover:text-red-500 hover:bg-white hover:scale-105'
             }`}
             title={isSaved ? 'Remove from wishlist' : 'Save to wishlist'}
           >
             <Heart
               className={`w-4 h-4 transition-transform duration-200 ${
-                isSaved ? 'fill-rose-500 text-rose-500' : ''
+                isSaved ? 'fill-red-500 text-red-500' : 'text-slate-500'
               }`}
             />
           </button>

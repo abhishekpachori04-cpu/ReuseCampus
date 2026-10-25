@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   ShieldCheck,
   Coins,
@@ -25,6 +25,7 @@ import ListingSkeleton from '../components/ui/ListingSkeleton';
  * unified filter bar, and immediate product visibility.
  */
 const Home = () => {
+  const location = useLocation();
   const { user } = useAuth();
   const { savedIds, count: savedCount } = useWishlist();
 
@@ -125,6 +126,27 @@ const Home = () => {
       ignore = true;
     };
   }, [fetchListings]);
+
+  // Handle wishlist filter trigger via ?saved=true
+  useEffect(() => {
+    let ignore = false;
+    const syncSavedFilter = async () => {
+      await Promise.resolve();
+      if (!ignore) {
+        const searchParams = new URLSearchParams(location.search);
+        if (searchParams.get('saved') === 'true') {
+          setIsSavedOnly(true);
+          setIsFreeOnly(false);
+          const feedElement = document.getElementById('browse-feed');
+          feedElement?.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    };
+    syncSavedFilter();
+    return () => {
+      ignore = true;
+    };
+  }, [location.search]);
 
   // Handle shared link with ?item=<id>
   useEffect(() => {
