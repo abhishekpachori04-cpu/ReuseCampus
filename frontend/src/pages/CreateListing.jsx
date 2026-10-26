@@ -18,7 +18,6 @@ import API from '../services/api';
 import useAuth from '../context/useAuth';
 
 import { CATEGORIES, CONDITIONS } from '../constants/campusConstants';
-import { compressImageFile } from '../utils/imageCompressor';
 
 // Preset sample images for quick testing
 const imagePresets = [
@@ -58,8 +57,9 @@ const CreateListing = () => {
     imageUrl: '',
   });
 
+  const [imageFile, setImageFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState('');
   const [loading, setLoading] = useState(false);
-  const [compressing, setCompressing] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -71,33 +71,37 @@ const CreateListing = () => {
     if (errorMessage) setErrorMessage('');
   };
 
-  // Device file upload handler
-  const handleFileChange = async (e) => {
+  // Device file upload handler with instant preview
+  const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setCompressing(true);
-    setErrorMessage('');
-
-    try {
-      const compressedDataUrl = await compressImageFile(file, 900, 0.8);
-      setFormData((prev) => ({ ...prev, imageUrl: compressedDataUrl }));
-      setImageFileName(file.name);
-    } catch (err) {
-      console.error('Image compression error:', err);
-      setErrorMessage(err.message || 'Failed to process selected image.');
-    } finally {
-      setCompressing(false);
+    if (!file.type.startsWith('image/')) {
+      setErrorMessage('Please select a valid image file (PNG, JPG, JPEG, WEBP).');
+      return;
     }
+
+    setErrorMessage('');
+    setImageFile(file);
+    setImageFileName(file.name);
+
+    // Generate local preview URL
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+    setFormData((prev) => ({ ...prev, imageUrl: '' }));
   };
 
   const handleSelectPreset = (url, name) => {
+    setImageFile(null);
+    setPreviewUrl('');
     setFormData((prev) => ({ ...prev, imageUrl: url }));
     setImageFileName(`${name} Preset Photo`);
     if (errorMessage) setErrorMessage('');
   };
 
   const handleRemoveImage = () => {
+    setImageFile(null);
+    setPreviewUrl('');
     setFormData((prev) => ({ ...prev, imageUrl: '' }));
     setImageFileName('');
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -132,19 +136,28 @@ const CreateListing = () => {
       return;
     }
 
+    if (!imageFile && !formData.imageUrl.trim()) {
+      setErrorMessage('Please select an item photo file or provide an image.');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const payload = {
-        title: trimmedTitle,
-        description: trimmedDescription,
-        price: numPrice,
-        category: formData.category,
-        condition: formData.condition,
-        imageUrl: formData.imageUrl.trim(),
-      };
+      const submitData = new FormData();
+      submitData.append('title', trimmedTitle);
+      submitData.append('description', trimmedDescription);
+      submitData.append('price', numPrice);
+      submitData.append('category', formData.category);
+      submitData.append('condition', formData.condition);
 
-      const res = await API.post('/listings', payload);
+      if (imageFile) {
+        submitData.append('image', imageFile);
+      } else if (formData.imageUrl.trim()) {
+        submitData.append('imageUrl', formData.imageUrl.trim());
+      }
+
+      const res = await API.post('/listings', submitData);
 
       if (res.data?.success) {
         setSuccessMessage('Listing published successfully! Redirecting...');
@@ -367,25 +380,21 @@ const CreateListing = () => {
               id="device-photo-input"
             />
 
-            {/* Photo Selection Card */}
-            {!formData.imageUrl ? (
+            {/* Photo Selection Card or Live Preview */}
+            {!previewUrl && !formData.imageUrl ? (
               <label
                 htmlFor="device-photo-input"
                 className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/40 rounded-2xl cursor-pointer transition-all group text-center space-y-2"
               >
                 <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  {compressing ? (
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                  ) : (
-                    <UploadCloud className="w-6 h-6" />
-                  )}
+                  <UploadCloud className="w-6 h-6" />
                 </div>
                 <div>
                   <p className="text-sm font-bold text-slate-800">
-                    {compressing ? 'Optimizing photo...' : 'Upload Item Photo from Device'}
+                    Upload Item Photo from Device
                   </p>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Click to browse or take photo (PNG, JPG, WEBP auto-compressed)
+                    Click to browse (PNG, JPG, JPEG, WEBP — auto-optimized via Cloudinary)
                   </p>
                 </div>
               </label>
@@ -394,7 +403,7 @@ const CreateListing = () => {
               <div className="relative rounded-2xl border border-slate-200 overflow-hidden bg-slate-100">
                 <div className="relative h-56 w-full">
                   <img
-                    src={formData.imageUrl}
+                    src={previewUrl || formData.imageUrl}
                     alt="Item Preview"
                     className="w-full h-full object-cover"
                   />
@@ -435,7 +444,14 @@ const CreateListing = () => {
                   type="url"
                   name="imageUrl"
                   value={formData.imageUrl}
-                  onChange={handleChange}
+                  onChange={(e) => {
+                    handleChange(e);
+                    setImageFile(null);
+                    setPreviewUrl('');
+                    if (e.target.value) {
+                      setImageFileName('Custom Image URL');
+                    }
+                  }}
                   placeholder="https://images.unsplash.com/photo-..."
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-xs"
                 />

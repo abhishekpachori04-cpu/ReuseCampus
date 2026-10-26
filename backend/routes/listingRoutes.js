@@ -9,7 +9,10 @@ import {
   updateListingStatus,
   getMyListings,
 } from '../controllers/listingController.js';
+import multer from 'multer';
 import { protect } from '../middlewares/authMiddleware.js';
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 const router = express.Router();
 
@@ -23,8 +26,8 @@ router.get('/user/my-listings', protect, getMyListings);
 
 // Detail, Create, Update, Delete
 router.get('/:id', getListingById);
-router.post('/', protect, createListing);
-router.put('/:id', protect, updateListing);
+router.post('/', protect, upload.single('image'), createListing);
+router.put('/:id', protect, upload.single('image'), updateListing);
 router.delete('/:id', protect, deleteListing);
 
 // Status toggling (PRD Section 17 & 24.2)

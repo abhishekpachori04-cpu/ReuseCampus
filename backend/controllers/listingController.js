@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import Listing, { CATEGORIES, CONDITIONS, STATUSES } from '../models/Listing.js';
 import asyncHandler from '../utils/asyncHandler.js';
+import { uploadToCloudinary } from '../utils/cloudinary.js';
 
 /**
  * Helper to safely verify listing ownership between seller ID and requester ID
@@ -156,16 +157,15 @@ export const getListingById = asyncHandler(async (req, res) => {
  * @access  Private
  */
 export const createListing = asyncHandler(async (req, res) => {
-  const { title, description, price, category, condition, imageUrl } = req.body;
+  const { title, description, price, category, condition, imageUrl, itemPhoto } = req.body;
 
   const trimmedTitle = typeof title === 'string' ? title.trim() : '';
   const trimmedDesc = typeof description === 'string' ? description.trim() : '';
-  const trimmedImage = typeof imageUrl === 'string' ? imageUrl.trim() : '';
 
-  if (!trimmedTitle || !trimmedDesc || price === undefined || !category || !condition || !trimmedImage) {
+  if (!trimmedTitle || !trimmedDesc || price === undefined || !category || !condition) {
     return res.status(400).json({
       success: false,
-      message: 'Please provide all required fields without empty whitespace (title, description, price, category, condition, imageUrl)',
+      message: 'Please provide all required fields without empty whitespace (title, description, price, category, condition)',
     });
   }
 
@@ -191,13 +191,51 @@ export const createListing = asyncHandler(async (req, res) => {
     });
   }
 
+  let finalImageUrl = '';
+
+  // 1. Upload buffer to Cloudinary if image file uploaded via Multer
+  if (req.file) {
+    try {
+      const uploadResult = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
+      finalImageUrl = uploadResult.secure_url;
+    } catch (uploadError) {
+      const errMsg = uploadError?.message || 'Failed to upload and compress image with Cloudinary.';
+      console.error('[Cloudinary Upload Error]:', errMsg);
+      return res.status(502).json({
+        success: false,
+        message: `Image upload failed: ${errMsg}. Please verify your Cloudinary credentials.`,
+      });
+    }
+  } else if (imageUrl || itemPhoto) {
+    // 2. Fallback to image URL or base64 data URI if sent in request body
+    const rawImage = (imageUrl || itemPhoto || '').trim();
+    if (rawImage.startsWith('data:image')) {
+      try {
+        const uploadResult = await uploadToCloudinary(rawImage);
+        finalImageUrl = uploadResult.secure_url;
+      } catch {
+        finalImageUrl = rawImage;
+      }
+    } else {
+      finalImageUrl = rawImage;
+    }
+  }
+
+  if (!finalImageUrl) {
+    return res.status(400).json({
+      success: false,
+      message: 'Please provide an image for the listing (upload a photo file or provide an imageUrl)',
+    });
+  }
+
   const listing = await Listing.create({
     title: trimmedTitle,
     description: trimmedDesc,
     price: numPrice,
     category,
     condition,
-    imageUrl: trimmedImage,
+    imageUrl: finalImageUrl,
+    itemPhoto: finalImageUrl,
     seller: req.user._id,
     status: 'AVAILABLE',
   });
@@ -298,14 +336,37 @@ export const updateListing = asyncHandler(async (req, res) => {
     listing.description = description.trim();
   }
 
-  if (imageUrl !== undefined) {
-    if (typeof imageUrl !== 'string' || !imageUrl.trim()) {
-      return res.status(400).json({
+  // Handle image update if file provided or URL string provided
+  let updatedImageUrl = undefined;
+  if (req.file) {
+    try {
+      const uploadResult = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
+      updatedImageUrl = uploadResult.secure_url;
+    } catch (uploadError) {
+      return res.status(500).json({
         success: false,
-        message: 'Image URL cannot be blank',
+        message: 'Failed to upload and compress image with Cloudinary.',
       });
     }
-    listing.imageUrl = imageUrl.trim();
+  } else if (imageUrl !== undefined || req.body.itemPhoto !== undefined) {
+    const rawImage = (imageUrl || req.body.itemPhoto || '').trim();
+    if (rawImage) {
+      if (rawImage.startsWith('data:image')) {
+        try {
+          const uploadResult = await uploadToCloudinary(rawImage);
+          updatedImageUrl = uploadResult.secure_url;
+        } catch {
+          updatedImageUrl = rawImage;
+        }
+      } else {
+        updatedImageUrl = rawImage;
+      }
+    }
+  }
+
+  if (updatedImageUrl) {
+    listing.imageUrl = updatedImageUrl;
+    listing.itemPhoto = updatedImageUrl;
   }
 
   if (category) listing.category = category;

@@ -8,12 +8,15 @@ const API = axios.create({
   timeout: 15000,
 });
 
-// Interceptor to attach JWT token to outgoing requests
 API.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('reusecampus_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // Allow browser/axios to set proper multipart/form-data boundary for FormData
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
     }
     return config;
   },

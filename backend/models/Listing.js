@@ -51,12 +51,16 @@ const listingSchema = new mongoose.Schema(
         message: '{VALUE} is not a valid condition (Choose: New, Like New, Good, Fair)',
       },
     },
-    // ADR-001: Pre-compressed client-side canvas Data URL (<120KB) avoids broken images on Render's ephemeral filesystem
     imageUrl: {
       type: String,
       required: [true, 'Please provide an image URL for the listing'],
       trim: true,
       maxlength: [800000, 'Image payload is too large. Please upload a standard compressed image.'],
+    },
+    itemPhoto: {
+      type: String,
+      trim: true,
+      default: '',
     },
     seller: {
       type: mongoose.Schema.Types.ObjectId,

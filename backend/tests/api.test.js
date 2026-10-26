@@ -171,6 +171,12 @@ describe('=== ReuseCampus Senior Engineering Automated Test Suite ===', () => {
       assert.ok(imageField);
       assert.strictEqual(imageField.options.maxlength[0], 800000);
     });
+
+    it('should include itemPhoto string field in Listing schema for Cloudinary uploads', () => {
+      const itemPhotoField = Listing.schema.path('itemPhoto');
+      assert.ok(itemPhotoField);
+      assert.strictEqual(itemPhotoField.instance, 'String');
+    });
   });
 
   describe('4. Authentication & Authorization Middleware Guard', () => {
@@ -970,6 +976,100 @@ describe('=== ReuseCampus Senior Engineering Automated Test Suite ===', () => {
         process.env.NODE_ENV = origEnv;
         process.env.SMTP_USER = origUser;
         process.env.SMTP_PASS = origPass;
+      }
+    });
+  });
+
+  describe('8. Cloudinary Image Auto-Compression & Upload Contract', () => {
+    it('should export uploadToCloudinary function', async () => {
+      const { uploadToCloudinary } = await import('../utils/cloudinary.js');
+      assert.strictEqual(typeof uploadToCloudinary, 'function');
+    });
+
+    it('should reject createListing with 400 if neither image file nor imageUrl is provided', async () => {
+      const { createListing } = await import('../controllers/listingController.js');
+      const req = {
+        user: { _id: '654321000000000000000001' },
+        body: {
+          title: 'Item without image',
+          description: 'Description without image',
+          price: 50,
+          category: 'Books',
+          condition: 'Good',
+        },
+      };
+
+      let statusCode = null;
+      let jsonBody = null;
+      const res = {
+        status(code) {
+          statusCode = code;
+          return this;
+        },
+        json(data) {
+          jsonBody = data;
+          return this;
+        },
+      };
+
+      await createListing(req, res);
+      assert.strictEqual(statusCode, 400);
+      assert.strictEqual(jsonBody.success, false);
+      assert.match(jsonBody.message, /provide an image for the listing/i);
+    });
+
+    it('should save imageUrl and itemPhoto to created listing when imageUrl is provided in body', async () => {
+      const { createListing } = await import('../controllers/listingController.js');
+      const origCreate = Listing.create;
+      let createdDoc = null;
+
+      Listing.create = async (data) => {
+        createdDoc = data;
+        return {
+          ...data,
+          _id: '654321000000000000000088',
+          populate: async () => ({
+            ...data,
+            _id: '654321000000000000000088',
+            seller: { name: 'Student' },
+          }),
+        };
+      };
+
+      try {
+        const testUrl = 'https://res.cloudinary.com/root/image/upload/v1234/reusecampus/test.webp';
+        const req = {
+          user: { _id: '654321000000000000000001' },
+          body: {
+            title: 'Sample Direct Image Listing',
+            description: 'Direct Cloudinary URL listing',
+            price: 100,
+            category: 'Electronics',
+            condition: 'Like New',
+            imageUrl: testUrl,
+          },
+        };
+
+        let statusCode = null;
+        let jsonBody = null;
+        const res = {
+          status(code) {
+            statusCode = code;
+            return this;
+          },
+          json(data) {
+            jsonBody = data;
+            return this;
+          },
+        };
+
+        await createListing(req, res);
+        assert.strictEqual(statusCode, 201);
+        assert.strictEqual(jsonBody.success, true);
+        assert.strictEqual(createdDoc.imageUrl, testUrl);
+        assert.strictEqual(createdDoc.itemPhoto, testUrl);
+      } finally {
+        Listing.create = origCreate;
       }
     });
   });
