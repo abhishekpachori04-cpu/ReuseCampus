@@ -162,7 +162,7 @@ const Navbar = () => {
               {/* Sell / Donate Item CTA Button */}
               <Link
                 to="/create"
-                className="ml-1 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-sm font-semibold shadow-sm shadow-emerald-500/20 hover:shadow-md transition-all duration-200 active:scale-95"
+                className="ml-1 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 text-sm font-semibold transition-colors duration-200 active:scale-95 shadow-xs"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span>Sell / Donate Item</span>
@@ -196,7 +196,7 @@ const Navbar = () => {
               </button>
 
               {isAuthenticated ? (
-                <div className="flex items-center gap-2.5">
+                <div className="group flex items-center">
                   {/* Sleek Circular Avatar Badge with Initial */}
                   <button
                     type="button"
@@ -205,7 +205,7 @@ const Navbar = () => {
                       setProfileSuccess('');
                       setIsProfileOpen(true);
                     }}
-                    className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-extrabold text-sm shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/35 ring-2 ring-emerald-500/30 hover:ring-emerald-500/70 transition-all duration-200 flex items-center justify-center cursor-pointer active:scale-95 group"
+                    className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-extrabold text-sm shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/35 ring-2 ring-emerald-500/30 hover:ring-emerald-500/70 transition-all duration-200 flex items-center justify-center cursor-pointer active:scale-95 shrink-0"
                     title={`${user?.name || 'Campus Student'} - Click to manage profile`}
                     aria-label="User Profile"
                   >
@@ -224,9 +224,9 @@ const Navbar = () => {
                     onClick={handleLogout}
                     type="button"
                     title="Sign Out"
-                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                    className="opacity-0 -translate-x-2 w-0 p-0 overflow-hidden transition-all duration-300 ease-in-out group-hover:opacity-100 group-hover:translate-x-0 group-hover:w-auto group-hover:p-2 group-hover:ml-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl cursor-pointer flex items-center justify-center shrink-0"
                   >
-                    <LogOut className="w-4 h-4" />
+                    <LogOut className="w-4 h-4 shrink-0" />
                   </button>
                 </div>
               ) : (

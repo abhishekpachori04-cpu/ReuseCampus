@@ -171,18 +171,20 @@ const CreateListing = () => {
 
       <div className="bg-white/95 backdrop-blur-md rounded-3xl p-6 sm:p-10 border border-slate-200/80 shadow-2xl shadow-slate-900/5 space-y-8 relative z-10">
         <div>
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-emerald-700 transition-colors cursor-pointer group mb-4"
-            aria-label="Go Back"
-          >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform text-slate-400 group-hover:text-emerald-600" />
-            <span>Back</span>
-          </button>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold uppercase tracking-wider mb-2">
-            <PlusCircle className="w-3.5 h-3.5 text-emerald-600" />
-            Sell or Donate to Students
+          <div className="flex items-center gap-3 mb-6">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-emerald-700 transition-colors cursor-pointer group"
+              aria-label="Go Back"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform text-slate-400 group-hover:text-emerald-600" />
+              <span>Back</span>
+            </button>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold uppercase tracking-wider">
+              <PlusCircle className="w-3.5 h-3.5 text-emerald-600" />
+              Sell or Donate to Students
+            </div>
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
             Create a New Campus Listing

@@ -333,7 +333,7 @@ const Login = () => {
 
       <div className="max-w-md w-full bg-white/95 backdrop-blur-md rounded-3xl p-8 border border-slate-200/80 shadow-2xl shadow-slate-900/5 space-y-6 relative z-10">
         {/* Sleek Top-Left Back Navigation Button */}
-        <div>
+        <div className="flex items-center gap-3 mb-6">
           <button
             type="button"
             onClick={() => navigate(-1)}
@@ -343,6 +343,9 @@ const Login = () => {
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform text-slate-400 group-hover:text-emerald-600" />
             <span>Back</span>
           </button>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-[11px] font-bold uppercase tracking-wider">
+            Student Portal
+          </div>
         </div>
 
         <div className="text-center space-y-2">
