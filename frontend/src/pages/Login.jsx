@@ -42,6 +42,7 @@ const Login = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [recoveryLoading, setRecoveryLoading] = useState(false);
   const [resendingOtp, setResendingOtp] = useState(false);
   const [recoveryError, setRecoveryError] = useState('');
@@ -114,6 +115,7 @@ const Login = () => {
     setShowConfirmPassword(false);
     setRecoveryStep(1);
     setRecoveryError('');
+    setIsSendingOtp(false);
     setIsRecoveryOpen(true);
   };
 
@@ -125,11 +127,15 @@ const Login = () => {
     setNewPassword('');
     setConfirmPassword('');
     setRecoveryError('');
+    setIsSendingOtp(false);
   };
 
   // STEP 1: Request 6-Digit Email OTP
   const handleRequestOtp = async (e) => {
-    if (e) e.preventDefault();
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault();
+    }
+    if (isSendingOtp) return;
     setRecoveryError('');
 
     const cleanIdentifier = recoveryIdentifier.trim();
@@ -138,6 +144,7 @@ const Login = () => {
       return;
     }
 
+    setIsSendingOtp(true);
     setRecoveryLoading(true);
 
     try {
@@ -159,6 +166,7 @@ const Login = () => {
           'No student account found with this email or registered phone number.'
       );
     } finally {
+      setIsSendingOtp(false);
       setRecoveryLoading(false);
     }
   };
@@ -211,6 +219,7 @@ const Login = () => {
 
   // Resend OTP
   const handleResendOtp = async () => {
+    if (resendingOtp) return;
     setResendingOtp(true);
     setRecoveryError('');
 
@@ -591,13 +600,14 @@ const Login = () => {
                   </button>
                   <button
                     type="submit"
-                    disabled={recoveryLoading}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-60 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                    onClick={handleRequestOtp}
+                    disabled={isSendingOtp}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-60 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer disabled:cursor-not-allowed"
                   >
-                    {recoveryLoading ? (
+                    {isSendingOtp ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        Sending Code...
+                        <span>Sending OTP... ⏳</span>
                       </>
                     ) : (
                       <>

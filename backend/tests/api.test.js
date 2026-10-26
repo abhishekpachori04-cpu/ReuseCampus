@@ -25,6 +25,9 @@ const { isListingOwner } = await import('../controllers/listingController.js');
 const { forgotPassword, verifyOtp, resetPassword, maskEmail } = await import('../controllers/authController.js');
 const { default: jwt } = await import('jsonwebtoken');
 const { default: bcrypt } = await import('bcryptjs');
+const { generateOtpEmail, generateWelcomeEmail } = await import('../utils/emailTemplates.js');
+const { sendWelcomeEmail } = await import('../utils/sendWelcomeEmail.js');
+const { sendEmailOtp, recentEmails } = await import('../utils/sendEmailOtp.js');
 
 describe('=== ReuseCampus Senior Engineering Automated Test Suite ===', () => {
 
@@ -453,6 +456,93 @@ describe('=== ReuseCampus Senior Engineering Automated Test Suite ===', () => {
       }
     });
 
+    it('should reject forgot-password with 429 when OTP was requested less than 60 seconds ago (cooldown timer)', async () => {
+      const origFindOne = User.findOne;
+      const recentOtpTime = new Date(Date.now() - 25000); // 25 seconds ago
+
+      User.findOne = async () => ({
+        _id: '654321000000000000000001',
+        email: '0902cs241008@rjit.ac.in',
+        lastOtpSentAt: recentOtpTime,
+        save: async () => {},
+      });
+
+      try {
+        const req = { body: { identifier: '0902cs241008@rjit.ac.in' } };
+        let statusCode = null;
+        let jsonBody = null;
+        const res = {
+          status(code) {
+            statusCode = code;
+            return this;
+          },
+          json(data) {
+            jsonBody = data;
+            return this;
+          },
+        };
+
+        await forgotPassword(req, res);
+        assert.strictEqual(statusCode, 429);
+        assert.strictEqual(jsonBody.success, false);
+        assert.match(jsonBody.message, /Please wait \d+ seconds before requesting a new OTP\./);
+      } finally {
+        User.findOne = origFindOne;
+      }
+    });
+
+    it('should allow forgot-password when lastOtpSentAt was 60 or more seconds ago and update lastOtpSentAt', async () => {
+      const origFindOne = User.findOne;
+      const oldOtpTime = new Date(Date.now() - 65000); // 65 seconds ago
+      let savedUser = null;
+
+      const mockUser = {
+        _id: '654321000000000000000001',
+        email: '0902cs241008@rjit.ac.in',
+        lastOtpSentAt: oldOtpTime,
+        resetOtpHash: null,
+        resetOtpExpires: null,
+        resetOtpAttempts: 0,
+        save: async function () {
+          savedUser = this;
+          return this;
+        },
+      };
+
+      User.findOne = async () => mockUser;
+
+      try {
+        const req = { body: { identifier: '0902cs241008@rjit.ac.in' } };
+        let statusCode = 200;
+        let jsonBody = null;
+        const res = {
+          status(code) {
+            statusCode = code;
+            return this;
+          },
+          json(data) {
+            jsonBody = data;
+            return this;
+          },
+        };
+
+        await forgotPassword(req, res);
+        assert.strictEqual(statusCode, 200);
+        assert.strictEqual(jsonBody.success, true);
+        assert.ok(savedUser.lastOtpSentAt, 'lastOtpSentAt must be updated');
+        assert.ok(
+          new Date(savedUser.lastOtpSentAt) > oldOtpTime,
+          'lastOtpSentAt should be updated to a newer timestamp'
+        );
+        assert.ok(
+          Date.now() - new Date(savedUser.lastOtpSentAt).getTime() < 30000,
+          'lastOtpSentAt should be updated to current time'
+        );
+      } finally {
+        User.findOne = origFindOne;
+      }
+    });
+
     it('should reject verify-otp if OTP is malformed or not 6 digits', async () => {
       const req = { body: { identifier: '0902cs241008@rjit.ac.in', otp: '123' } };
       let statusCode = null;
@@ -779,6 +869,107 @@ describe('=== ReuseCampus Senior Engineering Automated Test Suite ===', () => {
         assert.ok(updatedHash && updatedHash !== 'originalHash');
       } finally {
         User.findById = origFindById;
+      }
+    });
+  });
+
+  describe('7. Premium Responsive HTML Email Templates & Onboarding Flow', () => {
+    it('should generate responsive HTML OTP email with prominent 6-digit box and security warning', () => {
+      const testOtp = '849201';
+      const testEmail = '0902cs241008@rjit.ac.in';
+      const html = generateOtpEmail(testOtp, testEmail);
+
+      assert.ok(typeof html === 'string');
+      assert.ok(html.includes(testOtp));
+      assert.ok(html.includes(testEmail));
+      assert.ok(html.includes('Reuse'));
+      assert.ok(html.includes('Campus'));
+      assert.ok(html.includes('RJIT Tekanpur'));
+      assert.ok(html.includes('Valid for 10 minutes'));
+      assert.ok(html.includes('Security Warning:'));
+      assert.ok(html.includes('#059669')); // Emerald brand color
+    });
+
+    it('should generate warm, congratulatory HTML welcome email highlighting 3 quick tips', () => {
+      const studentName = 'Abhishek Pachori';
+      const html = generateWelcomeEmail(studentName);
+
+      assert.ok(typeof html === 'string');
+      assert.ok(html.includes('Welcome to the Campus Family, Abhishek!'));
+      assert.ok(html.includes('Verified @rjit.ac.in Community Only'));
+      assert.ok(html.includes('100% Free & Zero Commission'));
+      assert.ok(html.includes('Direct WhatsApp & Campus Deals'));
+      assert.ok(html.includes('Official RJIT Campus Marketplace'));
+      assert.ok(html.includes('Explore Campus Listings'));
+    });
+
+    it('should return { mocked: true } in test mode (NODE_ENV=test) for sendEmailOtp and sendWelcomeEmail without sending real emails', async () => {
+      const otpRes = await sendEmailOtp('0902cs241008@rjit.ac.in', '123456');
+      assert.strictEqual(otpRes.mocked, true);
+
+      const welcomeRes = await sendWelcomeEmail('0902cs241008@rjit.ac.in', 'Abhishek Pachori');
+      assert.strictEqual(welcomeRes.mocked, true);
+    });
+
+    it('should safely execute sendEmailOtp using HTML template in development fallback', async () => {
+      const origEnv = process.env.NODE_ENV;
+      const origUser = process.env.SMTP_USER;
+      try {
+        process.env.NODE_ENV = 'development';
+        delete process.env.SMTP_USER;
+        const res = await sendEmailOtp('test.student@rjit.ac.in', '123456');
+        assert.strictEqual(res.success, true);
+        assert.strictEqual(res.devFallback, true);
+      } finally {
+        process.env.NODE_ENV = origEnv;
+        process.env.SMTP_USER = origUser;
+      }
+    });
+
+    it('should safely execute sendWelcomeEmail without throwing in development fallback', async () => {
+      const origEnv = process.env.NODE_ENV;
+      const origUser = process.env.SMTP_USER;
+      try {
+        process.env.NODE_ENV = 'development';
+        delete process.env.SMTP_USER;
+        const res = await sendWelcomeEmail('test.student@rjit.ac.in', 'Abhishek Pachori');
+        assert.strictEqual(res.success, true);
+        assert.strictEqual(res.devFallback, true);
+      } finally {
+        process.env.NODE_ENV = origEnv;
+        process.env.SMTP_USER = origUser;
+      }
+    });
+
+    it('should enforce module-level in-memory rate-limit lock on recentEmails within 60 seconds', async () => {
+      const testEmail = 'locktest@rjit.ac.in';
+      const origEnv = process.env.NODE_ENV;
+      const origUser = process.env.SMTP_USER;
+      const origPass = process.env.SMTP_PASS;
+
+      try {
+        process.env.NODE_ENV = 'production';
+        process.env.SMTP_USER = 'dummy@rjit.ac.in';
+        process.env.SMTP_PASS = 'dummypass';
+
+        // Pre-populate in-memory lock
+        recentEmails.set(testEmail, Date.now() - 20000); // 20 seconds ago
+
+        let caughtErr = null;
+        try {
+          await sendEmailOtp(testEmail, '654321');
+        } catch (err) {
+          caughtErr = err;
+        }
+
+        assert.ok(caughtErr, 'Should throw a rate limit error');
+        assert.strictEqual(caughtErr.statusCode, 429);
+        assert.match(caughtErr.message, /Rate limit exceeded: Please wait \d+ seconds before requesting another OTP\./);
+      } finally {
+        recentEmails.delete(testEmail);
+        process.env.NODE_ENV = origEnv;
+        process.env.SMTP_USER = origUser;
+        process.env.SMTP_PASS = origPass;
       }
     });
   });

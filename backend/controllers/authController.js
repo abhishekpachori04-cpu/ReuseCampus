@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import User, { isCollegeEmailValid } from '../models/User.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import sendEmailOtp from '../utils/sendEmailOtp.js';
+import sendWelcomeEmail from '../utils/sendWelcomeEmail.js';
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || 'secret_fallback', {
@@ -93,6 +94,11 @@ export const registerUser = asyncHandler(async (req, res) => {
     passwordHash,
     college: trimmedCollege,
     phone: trimmedPhone,
+  });
+
+  // Asynchronously dispatch welcome onboarding email without blocking registration response
+  sendWelcomeEmail(user.email, user.name).catch((err) => {
+    console.error(`[Welcome Email Error] Failed to send welcome email to ${user.email}:`, err.message);
   });
 
   res.status(201).json({
@@ -229,6 +235,26 @@ export const forgotPassword = asyncHandler(async (req, res) => {
       message: 'No registered student account found matching this email or phone number.',
     });
   }
+
+  const now = Date.now();
+  const lastOtpTime = user.lastOtpSentAt
+    ? typeof user.lastOtpSentAt.getTime === 'function'
+      ? user.lastOtpSentAt.getTime()
+      : new Date(user.lastOtpSentAt).getTime()
+    : 0;
+
+  // Check if lastOtpSentAt exists and is within the last 60 seconds
+  if (user.lastOtpSentAt && now - lastOtpTime < 60000) {
+    const timeLeft = Math.ceil((60000 - (now - lastOtpTime)) / 1000);
+    return res.status(429).json({
+      success: false,
+      message: `Please wait ${timeLeft} seconds before requesting a new OTP.`,
+    });
+  }
+
+  // If valid, update the timestamp immediately and save BEFORE sending the email
+  user.lastOtpSentAt = new Date(now);
+  await user.save();
 
   // Generate cryptographically secure 6-digit OTP (100000 - 999999)
   const otp = crypto.randomInt(100000, 1000000).toString();

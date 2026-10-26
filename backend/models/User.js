@@ -87,6 +87,9 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    lastOtpSentAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true,
