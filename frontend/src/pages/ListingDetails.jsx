@@ -310,9 +310,9 @@ const ListingDetails = () => {
       )}
 
       {/* Main Listing Layout: 2 Columns */}
-      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xl overflow-hidden grid grid-cols-1 lg:grid-cols-12">
+      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xl overflow-hidden flex flex-col md:flex-row gap-0">
         {/* Left Column: Product Photo Container */}
-        <div className="lg:col-span-6 bg-slate-50 p-6 sm:p-10 flex flex-col items-center justify-center relative border-b lg:border-b-0 lg:border-r border-slate-200/90 min-h-[340px] sm:min-h-[460px]">
+        <div className="w-full md:w-1/2 bg-slate-50 p-6 sm:p-10 flex flex-col items-center justify-center relative border-b md:border-b-0 md:border-r border-slate-200/90 min-h-[320px] sm:min-h-[460px]">
           {/* Top Badges */}
           <div className="absolute top-4 left-4 flex flex-wrap gap-2 z-10 max-w-[85%]">
             <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/95 backdrop-blur-md text-slate-800 shadow-sm border border-slate-200/80 flex items-center gap-1">
@@ -368,7 +368,7 @@ const ListingDetails = () => {
         </div>
 
         {/* Right Column: Listing Details, View Counter & Contact/Owner Actions */}
-        <div className="lg:col-span-6 p-6 sm:p-10 flex flex-col justify-between space-y-6">
+        <div className="w-full md:w-1/2 p-6 sm:p-10 flex flex-col justify-between space-y-6">
           <div className="space-y-4">
             {/* Condition Pill & Timestamp */}
             <div className="flex items-center justify-between flex-wrap gap-2">
@@ -465,13 +465,13 @@ const ListingDetails = () => {
                   Have you agreed to a deal with a fellow student? Mark this listing as Sold to
                   close outreach and prevent further inquiries.
                 </p>
-                <div className="pt-1 flex flex-wrap gap-2.5">
+                <div className="pt-1 flex flex-col sm:flex-row gap-2.5 w-full">
                   <button
                     id="mark-as-sold-btn"
                     type="button"
                     onClick={handleMarkAsSold}
                     disabled={updatingStatus}
-                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer disabled:opacity-60"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer disabled:opacity-60"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     <span>{updatingStatus ? 'Updating...' : 'Mark as Sold'}</span>
@@ -479,7 +479,7 @@ const ListingDetails = () => {
 
                   <Link
                     to="/my-listings"
-                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs border border-slate-200 transition-colors shadow-sm"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs border border-slate-200 transition-colors shadow-sm"
                   >
                     Manage My Listings
                   </Link>
@@ -588,21 +588,21 @@ const ListingDetails = () => {
               </div>
             ) : (
               /* If available and not owner: Render Direct WhatsApp Deal and Email Contact */
-              <div id="contact-action-buttons" className="space-y-2.5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div id="contact-action-buttons" className="space-y-2.5 w-full">
+                <div className="flex flex-col sm:flex-row gap-3 w-full">
                   {sellerPhone ? (
                     <a
                       id="direct-whatsapp-deal-btn"
                       href={getWhatsAppLink()}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/25 transition-all active:scale-95 cursor-pointer"
+                      className="w-full sm:flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/25 transition-all active:scale-95 cursor-pointer"
                     >
                       <MessageCircle className="w-4 h-4" />
                       <span>Direct WhatsApp Deal</span>
                     </a>
                   ) : (
-                    <div className="flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-slate-100 text-slate-400 font-medium text-xs">
+                    <div className="w-full sm:flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-slate-100 text-slate-400 font-medium text-xs">
                       <Phone className="w-4 h-4" />
                       <span>WhatsApp Not Provided</span>
                     </div>
@@ -611,7 +611,7 @@ const ListingDetails = () => {
                   <a
                     id="email-contact-btn"
                     href={getEmailLink()}
-                    className="flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm shadow-md shadow-slate-900/20 transition-all active:scale-95 cursor-pointer"
+                    className="w-full sm:flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm shadow-md shadow-slate-900/20 transition-all active:scale-95 cursor-pointer"
                   >
                     <Mail className="w-4 h-4" />
                     <span>Email Seller</span>

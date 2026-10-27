@@ -147,7 +147,7 @@ const ListingFilterBar = ({
       </div>
 
       {/* Tactile Segmented Quick Filters & Category Pills Slider */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 scrollbar-none">
+      <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap hide-scrollbar pb-1 pt-0.5">
         {/* Quick Filter: Standout Free Donations */}
         <button
           type="button"

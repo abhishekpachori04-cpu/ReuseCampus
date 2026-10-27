@@ -456,7 +456,7 @@ const MyListings = () => {
 
       {/* Filter Tabs */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap hide-scrollbar pb-1 max-w-full">
           <button
             type="button"
             onClick={() => setFilterTab('ALL')}

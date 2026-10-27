@@ -111,21 +111,21 @@ const Navbar = () => {
   return (
     <>
       <nav className="sticky top-0 z-40 backdrop-blur-xl bg-white/80 border-b border-slate-200/70 shadow-[0_1px_3px_rgba(15,23,42,0.03)] transition-all">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16 sm:h-18">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-15 sm:h-18">
             {/* Logo */}
             <Link
               to="/"
-              className="flex items-center gap-3 group transition-transform active:scale-95"
+              className="flex items-center gap-2 sm:gap-3 group transition-transform active:scale-95 shrink-0"
             >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white shadow-md shadow-emerald-500/20 flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:shadow-emerald-500/35">
-                <GraduationCap className="w-5 h-5 text-white" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white shadow-md shadow-emerald-500/20 flex items-center justify-center transition-all duration-300 group-hover:scale-105 shrink-0">
+                <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-xl tracking-tight text-slate-900 group-hover:text-emerald-700 transition-colors">
+              <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
+                <span className="font-extrabold text-base sm:text-xl tracking-tight text-slate-900 group-hover:text-emerald-700 transition-colors truncate">
                   Reuse<span className="text-emerald-600">Campus</span>
                 </span>
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200/60 uppercase tracking-wider">
+                <span className="px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200/60 uppercase tracking-wider shrink-0">
                   RJIT
                 </span>
               </div>
@@ -253,8 +253,18 @@ const Navbar = () => {
               )}
             </div>
 
-            {/* Mobile Wishlist Heart & Menu Toggle Button */}
-            <div className="flex md:hidden items-center gap-1">
+            {/* Mobile Actions Strip (scaled appropriately to fit a single row on mobile without overflow) */}
+            <div className="flex md:hidden items-center gap-1.5">
+              {/* Scaled Sell Button for mobile */}
+              <Link
+                to="/create"
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold hover:bg-emerald-600 hover:text-white transition-all shadow-xs active:scale-95 shrink-0"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>Sell</span>
+              </Link>
+
+              {/* Mobile Wishlist */}
               <button
                 type="button"
                 onClick={() => {
@@ -262,28 +272,47 @@ const Navbar = () => {
                   const feed = document.getElementById('browse-feed');
                   feed?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="relative p-2 rounded-xl text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                className="relative p-1.5 rounded-lg text-slate-600 hover:text-rose-600 transition-colors cursor-pointer shrink-0"
                 title={`Saved Items (${savedItems.length})`}
                 aria-label="Wishlist"
               >
                 <Heart
-                  className={`w-5 h-5 ${
+                  className={`w-4 h-4 sm:w-5 sm:h-5 ${
                     savedItems.length > 0 ? 'fill-red-500 text-red-500' : 'text-slate-600'
                   }`}
                 />
                 {savedItems.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-xs animate-fadeIn">
-                    {savedItems.length > 99 ? '99+' : savedItems.length}
+                  <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center">
+                    {savedItems.length > 9 ? '9+' : savedItems.length}
                   </span>
                 )}
               </button>
+
+              {/* Scaled Mobile Avatar (if authenticated) */}
+              {isAuthenticated && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProfileError('');
+                    setProfileSuccess('');
+                    setIsProfileOpen(true);
+                  }}
+                  className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-extrabold text-xs shadow-xs flex items-center justify-center cursor-pointer active:scale-95 shrink-0"
+                  title="Profile"
+                  aria-label="Profile"
+                >
+                  <span>{user?.name ? user.name.charAt(0).toUpperCase() : <User className="w-3.5 h-3.5" />}</span>
+                </button>
+              )}
+
+              {/* Hamburger Toggle */}
               <button
                 onClick={() => setIsOpen(!isOpen)}
                 type="button"
-                className="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none cursor-pointer"
+                className="p-1.5 sm:p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none cursor-pointer shrink-0"
                 aria-label="Toggle Navigation"
               >
-                {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                {isOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
               </button>
             </div>
           </div>

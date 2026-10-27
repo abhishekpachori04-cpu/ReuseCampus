@@ -335,12 +335,12 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-8 sm:py-12 px-4 md:px-8 relative overflow-hidden">
       {/* Subtle ambient glows */}
       <div className="absolute top-1/4 -left-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="max-w-md w-full bg-white/95 backdrop-blur-md rounded-3xl p-8 border border-slate-200/80 shadow-2xl shadow-slate-900/5 space-y-6 relative z-10">
+      <div className="max-w-md w-full bg-white/95 backdrop-blur-md rounded-3xl p-5 sm:p-8 border border-slate-200/80 shadow-2xl shadow-slate-900/5 space-y-6 relative z-10">
         {/* Sleek Top-Left Back Navigation Button */}
         <div className="flex items-center gap-3 mb-6">
           <button

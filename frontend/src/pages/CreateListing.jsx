@@ -177,12 +177,12 @@ const CreateListing = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative">
+    <div className="max-w-3xl mx-auto px-4 md:px-8 py-8 sm:py-10 relative">
       {/* Subtle ambient glows */}
       <div className="absolute top-10 -left-16 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-10 -right-16 w-72 h-72 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="bg-white/95 backdrop-blur-md rounded-3xl p-6 sm:p-10 border border-slate-200/80 shadow-2xl shadow-slate-900/5 space-y-8 relative z-10">
+      <div className="bg-white/95 backdrop-blur-md rounded-3xl p-5 sm:p-8 md:p-10 border border-slate-200/80 shadow-2xl shadow-slate-900/5 space-y-8 relative z-10">
         <div>
           <div className="flex items-center gap-3 mb-6">
             <button
