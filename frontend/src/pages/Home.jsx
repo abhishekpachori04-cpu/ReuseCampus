@@ -12,7 +12,6 @@ import {
   Package,
 } from 'lucide-react';
 import API from '../services/api';
-import useAuth from '../context/useAuth';
 import { useDebounce } from '../hooks/useDebounce';
 import useWishlist from '../hooks/useWishlist';
 import ListingCard from '../components/listings/ListingCard';
@@ -26,7 +25,6 @@ import ListingSkeleton from '../components/ui/ListingSkeleton';
 const Home = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { savedIds, count: savedCount } = useWishlist();
 
   const [listings, setListings] = useState([]);
