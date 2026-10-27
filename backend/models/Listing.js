@@ -13,7 +13,7 @@ export const CATEGORIES = [
 
 export const CONDITIONS = ['New', 'Like New', 'Good', 'Fair'];
 
-export const STATUSES = ['AVAILABLE', 'SOLD'];
+export const STATUSES = ['Available', 'Sold'];
 
 const listingSchema = new mongoose.Schema(
   {
@@ -67,19 +67,43 @@ const listingSchema = new mongoose.Schema(
       ref: 'User',
       required: [true, 'Listing must be associated with a seller'],
     },
+    creatorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: function () {
+        return this.seller;
+      },
+    },
+    views: {
+      type: Number,
+      default: 0,
+    },
     status: {
       type: String,
-      enum: {
-        values: STATUSES,
-        message: '{VALUE} is not a valid status (Choose: AVAILABLE, SOLD)',
+      enum: ['Available', 'Sold'],
+      default: 'Available',
+      set: (val) => {
+        if (!val) return 'Available';
+        if (typeof val === 'string') {
+          const lower = val.toLowerCase();
+          if (lower === 'available') return 'Available';
+          if (lower === 'sold') return 'Sold';
+        }
+        return val;
       },
-      default: 'AVAILABLE',
     },
   },
   {
     timestamps: true,
   }
 );
+
+listingSchema.pre('save', function (next) {
+  if (!this.creatorId && this.seller) {
+    this.creatorId = this.seller;
+  }
+  next();
+});
 
 /**
  * ADR-002: High-speed compound indexes for feed filtering and seller dashboard queries

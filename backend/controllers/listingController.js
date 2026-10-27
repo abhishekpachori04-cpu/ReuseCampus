@@ -37,11 +37,18 @@ export const getListings = asyncHandler(async (req, res) => {
     }
   }
 
-  // Status filter: defaults to AVAILABLE unless ALL or specific status requested
+  // Status filter: defaults to Available unless ALL or specific status requested
   if (status && status !== 'ALL') {
-    query.status = status;
+    const sLower = status.toLowerCase();
+    if (sLower === 'available') {
+      query.status = { $in: ['Available', 'AVAILABLE'] };
+    } else if (sLower === 'sold') {
+      query.status = { $in: ['Sold', 'SOLD'] };
+    } else {
+      query.status = status;
+    }
   } else if (!status) {
-    query.status = 'AVAILABLE';
+    query.status = { $in: ['Available', 'AVAILABLE'] };
   }
 
   // Category filter
@@ -134,7 +141,11 @@ export const getListingById = asyncHandler(async (req, res) => {
     });
   }
 
-  const listing = await Listing.findById(req.params.id)
+  const listing = await Listing.findByIdAndUpdate(
+    req.params.id,
+    { $inc: { views: 1 } },
+    { new: true }
+  )
     .populate('seller', 'name email college phone avatar')
     .lean();
 
@@ -237,7 +248,9 @@ export const createListing = asyncHandler(async (req, res) => {
     imageUrl: finalImageUrl,
     itemPhoto: finalImageUrl,
     seller: req.user._id,
-    status: 'AVAILABLE',
+    creatorId: req.user._id,
+    status: 'Available',
+    views: 0,
   });
 
   const populatedListing = await listing.populate(
@@ -422,11 +435,11 @@ export const deleteListing = asyncHandler(async (req, res) => {
 });
 
 /**
- * @desc    Mark a listing as SOLD
- * @route   PATCH /api/listings/:id/sold
+ * @desc    Mark a listing as Sold (restricted to listing creator)
+ * @route   PATCH /api/listings/:id/sell
  * @access  Private
  */
-export const markListingAsSold = asyncHandler(async (req, res) => {
+export const markAsSold = asyncHandler(async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({
       success: false,
@@ -443,26 +456,46 @@ export const markListingAsSold = asyncHandler(async (req, res) => {
     });
   }
 
-  if (!isListingOwner(listing.seller, req.user._id)) {
+  // Ensure only the creator of the listing can perform this action (verify listing.creatorId === req.user.id)
+  const creatorId = listing.creatorId
+    ? listing.creatorId.toString()
+    : listing.seller
+    ? listing.seller.toString()
+    : '';
+
+  const userId = req.user?.id
+    ? req.user.id.toString()
+    : req.user?._id
+    ? req.user._id.toString()
+    : '';
+
+  const isCreator =
+    (listing.creatorId && req.user?.id && listing.creatorId === req.user.id) ||
+    (creatorId && userId && creatorId === userId) ||
+    isListingOwner(listing.seller, req.user._id);
+
+  if (!isCreator) {
     return res.status(403).json({
       success: false,
-      message: 'Unauthorized: Only the listing owner can mark this item as sold',
+      message: 'Unauthorized: Only the creator of the listing can mark it as sold',
     });
   }
 
-  listing.status = 'SOLD';
+  listing.status = 'Sold';
   const savedListing = await listing.save();
   const populated = await savedListing.populate('seller', 'name email college phone avatar');
 
   res.json({
     success: true,
     data: populated,
-    message: 'Listing marked as SOLD successfully',
+    message: 'Listing marked as Sold successfully',
   });
 });
 
+export const markListingAsSold = markAsSold;
+
 /**
- * @desc    Update listing status (AVAILABLE / SOLD)
+ * @desc    Update listing status (Available / Sold)
  * @route   PATCH /api/listings/:id/status
  * @access  Private
  */
@@ -475,10 +508,14 @@ export const updateListingStatus = asyncHandler(async (req, res) => {
   }
 
   const { status } = req.body;
-  if (!status || !STATUSES.includes(status)) {
+  const sLower = typeof status === 'string' ? status.toLowerCase() : '';
+  const normalizedStatus =
+    sLower === 'sold' ? 'Sold' : sLower === 'available' ? 'Available' : status;
+
+  if (!status || !['Available', 'Sold', 'AVAILABLE', 'SOLD'].includes(status)) {
     return res.status(400).json({
       success: false,
-      message: `Invalid status '${status}'. Must be one of: ${STATUSES.join(', ')}`,
+      message: `Invalid status '${status}'. Must be one of: Available, Sold`,
     });
   }
 
@@ -491,21 +528,38 @@ export const updateListingStatus = asyncHandler(async (req, res) => {
     });
   }
 
-  if (!isListingOwner(listing.seller, req.user._id)) {
+  const creatorId = listing.creatorId
+    ? listing.creatorId.toString()
+    : listing.seller
+    ? listing.seller.toString()
+    : '';
+
+  const userId = req.user?.id
+    ? req.user.id.toString()
+    : req.user?._id
+    ? req.user._id.toString()
+    : '';
+
+  const isCreator =
+    (listing.creatorId && req.user?.id && listing.creatorId === req.user.id) ||
+    (creatorId && userId && creatorId === userId) ||
+    isListingOwner(listing.seller, req.user._id);
+
+  if (!isCreator) {
     return res.status(403).json({
       success: false,
       message: 'Unauthorized: Only the listing owner can modify item status',
     });
   }
 
-  listing.status = status;
+  listing.status = normalizedStatus;
   const savedListing = await listing.save();
   const populated = await savedListing.populate('seller', 'name email college phone avatar');
 
   res.json({
     success: true,
     data: populated,
-    message: `Listing status updated to ${status} successfully`,
+    message: `Listing status updated to ${normalizedStatus} successfully`,
   });
 });
 

@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import CreateListing from './pages/CreateListing';
 import MyListings from './pages/MyListings';
+import ListingDetails from './pages/ListingDetails';
 import NotFound from './pages/NotFound';
 import { AuthProvider } from './context/AuthContext';
 import { WishlistProvider } from './context/WishlistContext';
@@ -29,6 +30,8 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/create" element={<CreateListing />} />
               <Route path="/my-listings" element={<MyListings />} />
+              <Route path="/listings/:id" element={<ListingDetails />} />
+              <Route path="/listing/:id" element={<ListingDetails />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>

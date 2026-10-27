@@ -21,7 +21,7 @@ const { default: User, isCollegeEmailValid } = await import('../models/User.js')
 const { sanitizeKeys } = await import('../middlewares/sanitizeMiddleware.js');
 const { default: Listing, CATEGORIES, CONDITIONS, STATUSES } = await import('../models/Listing.js');
 const { protect } = await import('../middlewares/authMiddleware.js');
-const { isListingOwner } = await import('../controllers/listingController.js');
+const { isListingOwner, createListing, getListingById, markAsSold } = await import('../controllers/listingController.js');
 const { forgotPassword, verifyOtp, resetPassword, maskEmail } = await import('../controllers/authController.js');
 const { default: jwt } = await import('jsonwebtoken');
 const { default: bcrypt } = await import('bcryptjs');
@@ -156,8 +156,22 @@ describe('=== ReuseCampus Senior Engineering Automated Test Suite ===', () => {
       assert.deepStrictEqual(CONDITIONS, ['New', 'Like New', 'Good', 'Fair']);
     });
 
-    it('should restrict listing status to AVAILABLE or SOLD', () => {
-      assert.deepStrictEqual(STATUSES, ['AVAILABLE', 'SOLD']);
+    it('should restrict listing status to Available or Sold (Stage 2)', () => {
+      assert.deepStrictEqual(STATUSES, ['Available', 'Sold']);
+    });
+
+    it('should include views Number field in Listing schema defaulting to 0', () => {
+      const viewsField = Listing.schema.path('views');
+      assert.ok(viewsField);
+      assert.strictEqual(viewsField.instance, 'Number');
+      assert.strictEqual(viewsField.defaultValue, 0);
+    });
+
+    it('should configure status field in Listing schema with enum [Available, Sold] defaulting to Available', () => {
+      const statusField = Listing.schema.path('status');
+      assert.ok(statusField);
+      assert.strictEqual(statusField.defaultValue, 'Available');
+      assert.deepStrictEqual(statusField.options.enum, ['Available', 'Sold']);
     });
 
     it('should support ₹0 pricing for peer-to-peer junior donations', () => {
@@ -1070,6 +1084,122 @@ describe('=== ReuseCampus Senior Engineering Automated Test Suite ===', () => {
         assert.strictEqual(createdDoc.itemPhoto, testUrl);
       } finally {
         Listing.create = origCreate;
+      }
+    });
+  });
+
+  describe('9. Stage 2: Product View Counter & Mark as Sold Functionality', () => {
+    it('should increment views count by 1 in getListingById', async () => {
+      const origFindByIdAndUpdate = Listing.findByIdAndUpdate;
+      let incArg = null;
+      let targetId = null;
+
+      Listing.findByIdAndUpdate = (id, update, options) => {
+        targetId = id;
+        incArg = update;
+        return {
+          populate: () => ({
+            lean: async () => ({
+              _id: id,
+              title: 'RJIT Lab Coat',
+              views: 11,
+              status: 'Available',
+              seller: { name: 'Abhishek' },
+            }),
+          }),
+        };
+      };
+
+      try {
+        const req = { params: { id: '654321000000000000000099' } };
+        let jsonResponse = null;
+        const res = {
+          status: () => res,
+          json: (data) => {
+            jsonResponse = data;
+          },
+        };
+
+        await getListingById(req, res);
+        assert.strictEqual(targetId, '654321000000000000000099');
+        assert.deepStrictEqual(incArg, { $inc: { views: 1 } });
+        assert.strictEqual(jsonResponse.success, true);
+        assert.strictEqual(jsonResponse.data.views, 11);
+      } finally {
+        Listing.findByIdAndUpdate = origFindByIdAndUpdate;
+      }
+    });
+
+    it('should reject markAsSold with 403 when user is not the listing creator', async () => {
+      const origFindById = Listing.findById;
+      Listing.findById = async () => ({
+        _id: '654321000000000000000099',
+        creatorId: '654321000000000000000001',
+        seller: '654321000000000000000001',
+        status: 'Available',
+      });
+
+      try {
+        const req = {
+          params: { id: '654321000000000000000099' },
+          user: { id: '654321000000000000000999', _id: '654321000000000000000999' },
+        };
+        let statusCode = null;
+        let jsonResponse = null;
+        const res = {
+          status: (code) => {
+            statusCode = code;
+            return res;
+          },
+          json: (data) => {
+            jsonResponse = data;
+          },
+        };
+
+        await markAsSold(req, res);
+        assert.strictEqual(statusCode, 403);
+        assert.strictEqual(jsonResponse.success, false);
+      } finally {
+        Listing.findById = origFindById;
+      }
+    });
+
+    it('should successfully mark listing as Sold when creatorId matches req.user.id', async () => {
+      const origFindById = Listing.findById;
+      const mockListing = {
+        _id: '654321000000000000000099',
+        creatorId: '654321000000000000000001',
+        seller: '654321000000000000000001',
+        status: 'Available',
+        save: async function () {
+          return this;
+        },
+        populate: async function () {
+          return this;
+        },
+      };
+
+      Listing.findById = async () => mockListing;
+
+      try {
+        const req = {
+          params: { id: '654321000000000000000099' },
+          user: { id: '654321000000000000000001', _id: '654321000000000000000001' },
+        };
+        let jsonResponse = null;
+        const res = {
+          status: () => res,
+          json: (data) => {
+            jsonResponse = data;
+          },
+        };
+
+        await markAsSold(req, res);
+        assert.strictEqual(jsonResponse.success, true);
+        assert.strictEqual(mockListing.status, 'Sold');
+        assert.strictEqual(jsonResponse.message, 'Listing marked as Sold successfully');
+      } finally {
+        Listing.findById = origFindById;
       }
     });
   });

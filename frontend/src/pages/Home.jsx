@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   ShieldCheck,
   Coins,
@@ -16,7 +16,6 @@ import useAuth from '../context/useAuth';
 import { useDebounce } from '../hooks/useDebounce';
 import useWishlist from '../hooks/useWishlist';
 import ListingCard from '../components/listings/ListingCard';
-import ListingDetailModal from '../components/listings/ListingDetailModal';
 import ListingFilterBar from '../components/listings/ListingFilterBar';
 import ListingSkeleton from '../components/ui/ListingSkeleton';
 
@@ -26,6 +25,7 @@ import ListingSkeleton from '../components/ui/ListingSkeleton';
  */
 const Home = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { savedIds, count: savedCount } = useWishlist();
 
@@ -50,9 +50,6 @@ const Home = () => {
 
   // Debounced search to prevent excessive backend querying
   const debouncedSearch = useDebounce(searchQuery, 300);
-
-  // Selected listing for modal quick-view
-  const [selectedListing, setSelectedListing] = useState(null);
 
   const fetchListings = useCallback(
     async (pageToFetch = 1, isAppending = false) => {
@@ -148,36 +145,14 @@ const Home = () => {
     };
   }, [location.search]);
 
-  // Handle shared link with ?item=<id>
+  // Handle shared link with ?item=<id> by navigating directly to full listing details
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const sharedItemId = searchParams.get('item');
-    if (!sharedItemId) return;
-
-    let ignore = false;
-    const fetchSharedListing = async () => {
-      // First check if already in loaded listings
-      const found = listings.find((l) => String(l._id) === String(sharedItemId));
-      if (found) {
-        setSelectedListing(found);
-        return;
-      }
-
-      try {
-        const res = await API.get(`/listings/${sharedItemId}`);
-        if (!ignore && res.data?.success && res.data?.data) {
-          setSelectedListing(res.data.data);
-        }
-      } catch {
-        // Silently ignore if shared item is no longer available
-      }
-    };
-
-    fetchSharedListing();
-    return () => {
-      ignore = true;
-    };
-  }, [listings]);
+    if (sharedItemId) {
+      navigate(`/listings/${sharedItemId}`, { replace: true });
+    }
+  }, [navigate]);
 
   const handleLoadMore = () => {
     if (!loadingMore && hasMore) {
@@ -448,7 +423,6 @@ const Home = () => {
                 <ListingCard
                   key={item._id}
                   item={item}
-                  onSelect={setSelectedListing}
                 />
               ))}
             </div>
@@ -483,24 +457,6 @@ const Home = () => {
           </div>
         )}
       </section>
-
-      {/* Quick View & Contact Seller Modal */}
-      {selectedListing && (
-        <ListingDetailModal
-          listing={selectedListing}
-          onClose={() => {
-            setSelectedListing(null);
-            const searchParams = new URLSearchParams(window.location.search);
-            if (searchParams.has('item')) {
-              searchParams.delete('item');
-              const newSearch = searchParams.toString();
-              const newUrl = window.location.pathname + (newSearch ? `?${newSearch}` : '');
-              window.history.replaceState({}, '', newUrl);
-            }
-          }}
-          currentUser={user}
-        />
-      )}
 
       {/* Sustainable Campus Value Props */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Clock, Heart, CheckCircle2, ArrowRight, Share2, Check } from 'lucide-react';
 import useWishlist from '../../context/useWishlist';
 
@@ -8,26 +9,28 @@ const FALLBACK_IMAGE =
 /**
  * Luxury Airbnb/Gumroad-Style Marketplace Listing Card
  */
-const ListingCard = ({ item, onSelect }) => {
+const ListingCard = ({ item, listing: propListing }) => {
+  const listing = propListing || item;
+  const navigate = useNavigate();
   const [isLoaded, setIsLoaded] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
   const { isSaved: checkIsSaved, toggleSaveItem } = useWishlist();
 
-  const isSold = item.status === 'SOLD';
-  const isFree = Number(item.price) === 0;
-  const isSaved = checkIsSaved(item._id);
+  const isSold = listing?.status === 'Sold' || listing?.status === 'SOLD';
+  const isFree = Number(listing?.price) === 0;
+  const isSaved = checkIsSaved(listing?._id);
 
-  const sellerInitial = item.seller?.name ? item.seller.name.charAt(0).toUpperCase() : 'S';
-  const sellerName = item.seller?.name || 'RJIT Student';
+  const sellerInitial = listing?.seller?.name ? listing.seller.name.charAt(0).toUpperCase() : 'S';
+  const sellerName = listing?.seller?.name || 'RJIT Student';
 
   // Native Web Share with Clipboard Fallback
   const handleShare = async (e) => {
     e.stopPropagation();
-    const shareUrl = `${window.location.origin}/?item=${item._id}`;
-    const priceText = isFree ? 'FREE' : `₹${item.price}`;
+    const shareUrl = `${window.location.origin}/listings/${listing._id}`;
+    const priceText = isFree ? 'FREE' : `₹${listing.price}`;
     const shareData = {
-      title: item.title,
-      text: `${item.title} - ${priceText} (${item.condition}) on ReuseCampus RJIT`,
+      title: listing.title,
+      text: `${listing.title} - ${priceText} (${listing.condition}) on ReuseCampus RJIT`,
       url: shareUrl,
     };
 
@@ -58,38 +61,49 @@ const ListingCard = ({ item, onSelect }) => {
     }
   };
 
+  const handleCardClick = () => {
+    if (listing?._id) {
+      navigate(`/listings/${listing._id}`);
+    }
+  };
+
   return (
     <article
-      onClick={() => onSelect(item)}
+      onClick={handleCardClick}
       className={`group bg-white rounded-2xl border border-slate-200/80 hover:border-emerald-500/40 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] hover:shadow-[0_20px_30px_-10px_rgba(15,23,42,0.1)] transition-all duration-300 hover:-translate-y-1 overflow-hidden flex flex-col cursor-pointer relative ${
-        isSold ? 'opacity-85' : ''
+        isSold ? 'opacity-65 grayscale-[25%]' : ''
       }`}
     >
       {/* Image Container with Aspect Ratio 4/3 */}
       <div className="aspect-[4/3] bg-slate-100 relative overflow-hidden">
         <img
-          src={item.imageUrl}
-          alt={item.title}
+          src={listing.imageUrl}
+          alt={listing.title}
           loading="lazy"
           decoding="async"
           onLoad={() => setIsLoaded(true)}
           className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${
             isLoaded ? 'opacity-100' : 'opacity-0'
-          } ${isSold ? 'grayscale-[30%]' : ''}`}
+          } ${isSold ? 'grayscale-[35%]' : ''}`}
           onError={(e) => {
             e.currentTarget.src = FALLBACK_IMAGE;
             setIsLoaded(true);
           }}
         />
 
-        {/* Top-Left Category Pill & Free Tag */}
+        {/* Top-Left Category Pill, Free Tag & Sold Badge */}
         <div className="absolute top-2.5 left-2.5 flex flex-wrap items-center gap-1.5 z-10 max-w-[75%]">
           <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold backdrop-blur-md bg-white/90 text-slate-800 border border-slate-200/90 shadow-sm">
-            {item.category}
+            {listing.category}
           </span>
           {isFree && (
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md border border-emerald-400/40">
               🎁 FREE
+            </span>
+          )}
+          {isSold && (
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-500 text-slate-950 shadow-md border border-amber-300 uppercase tracking-wider">
+              SOLD OUT
             </span>
           )}
         </div>
@@ -128,7 +142,7 @@ const ListingCard = ({ item, onSelect }) => {
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              toggleSaveItem(item._id);
+              toggleSaveItem(listing._id);
             }}
             aria-label={isSaved ? 'Remove from wishlist' : 'Save to wishlist'}
             className={`p-2 rounded-full backdrop-blur-md transition-all duration-200 cursor-pointer shadow-md active:scale-90 ${
@@ -148,8 +162,8 @@ const ListingCard = ({ item, onSelect }) => {
 
         {/* Sold Overlay */}
         {isSold && (
-          <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[1px] flex items-center justify-center pointer-events-none">
-            <span className="px-3.5 py-1 rounded-xl bg-amber-500 text-slate-950 font-black text-xs tracking-widest uppercase shadow-lg border border-amber-300">
+          <div className="absolute inset-0 bg-slate-950/45 backdrop-blur-[1px] flex items-center justify-center pointer-events-none z-20">
+            <span className="px-3.5 py-1 rounded-xl bg-amber-500 text-slate-950 font-black text-xs tracking-widest uppercase shadow-xl border border-amber-300 animate-pulse">
               SOLD OUT
             </span>
           </div>
@@ -159,25 +173,33 @@ const ListingCard = ({ item, onSelect }) => {
       {/* Card Content Details */}
       <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
         <div className="space-y-1.5">
-          {/* Metadata pill & Timestamp */}
+          {/* Metadata pill & Timestamp & Views */}
           <div className="flex items-center justify-between text-xs text-slate-400">
             <span className="bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded-md text-[11px]">
-              {item.condition}
+              {listing.condition}
             </span>
-            <span className="flex items-center gap-1 text-[11px]">
-              <Clock className="w-3 h-3 text-slate-400" />
-              {new Date(item.createdAt).toLocaleDateString()}
-            </span>
+            <div className="flex items-center gap-2 text-[11px]">
+              {listing.views !== undefined && listing.views !== null && (
+                <span className="flex items-center gap-0.5 text-slate-500 font-bold" title={`${listing.views} Views`}>
+                  <span>👁️</span>
+                  <span>{listing.views}</span>
+                </span>
+              )}
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3 text-slate-400" />
+                {new Date(listing.createdAt).toLocaleDateString()}
+              </span>
+            </div>
           </div>
 
           {/* Title */}
           <h3 className="font-bold text-slate-900 text-base line-clamp-1 group-hover:text-emerald-700 transition-colors">
-            {item.title}
+            {listing.title}
           </h3>
 
           {/* Description */}
           <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-            {item.description}
+            {listing.description}
           </p>
         </div>
 
@@ -190,7 +212,7 @@ const ListingCard = ({ item, onSelect }) => {
           ) : (
             <div className="flex items-baseline gap-1">
               <span className="font-mono text-xl sm:text-2xl font-bold text-slate-900">
-                ₹{item.price.toLocaleString()}
+                ₹{listing.price.toLocaleString()}
               </span>
               <span className="text-[11px] font-medium text-slate-400">campus deal</span>
             </div>

@@ -88,27 +88,36 @@ const MyListings = () => {
 
   // Status Summary Stats
   const totalCount = listings.length;
-  const activeCount = listings.filter((item) => item.status === 'AVAILABLE').length;
-  const soldCount = listings.filter((item) => item.status === 'SOLD').length;
+  const activeCount = listings.filter(
+    (item) => (item.status || '').toUpperCase() === 'AVAILABLE'
+  ).length;
+  const soldCount = listings.filter(
+    (item) => (item.status || '').toUpperCase() === 'SOLD'
+  ).length;
 
   // Filtered listings based on tab
   const displayedListings = listings.filter((item) => {
-    if (filterTab === 'AVAILABLE') return item.status === 'AVAILABLE';
-    if (filterTab === 'SOLD') return item.status === 'SOLD';
+    const s = (item.status || '').toUpperCase();
+    if (filterTab === 'AVAILABLE') return s === 'AVAILABLE';
+    if (filterTab === 'SOLD') return s === 'SOLD';
     return true;
   });
 
-  // Toggle status between AVAILABLE and SOLD
+  // Toggle status between Available and Sold
   const handleToggleStatus = async (id, currentStatus) => {
-    const newStatus = currentStatus === 'AVAILABLE' ? 'SOLD' : 'AVAILABLE';
+    const isCurrAvailable = (currentStatus || '').toUpperCase() === 'AVAILABLE';
+    const newStatus = isCurrAvailable ? 'Sold' : 'Available';
     try {
       setActionSuccess('');
       setErrorMessage('');
 
-      const res = await API.patch(`/listings/${id}/status`, { status: newStatus });
+      const res = isCurrAvailable
+        ? await API.patch(`/listings/${id}/sell`)
+        : await API.patch(`/listings/${id}/status`, { status: newStatus });
+
       if (res.data?.success) {
         setActionSuccess(
-          newStatus === 'SOLD'
+          newStatus === 'Sold'
             ? 'Item marked as SOLD! Great job passing it down.'
             : 'Item re-listed as AVAILABLE for campus buyers.'
         );
@@ -537,7 +546,7 @@ const MyListings = () => {
         /* Listing Cards with 3 Action Buttons */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {displayedListings.map((item) => {
-            const isSold = item.status === 'SOLD';
+            const isSold = (item.status || '').toUpperCase() === 'SOLD';
 
             return (
               <div

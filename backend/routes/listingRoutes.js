@@ -5,6 +5,7 @@ import {
   createListing,
   updateListing,
   deleteListing,
+  markAsSold,
   markListingAsSold,
   updateListingStatus,
   getMyListings,
@@ -30,8 +31,9 @@ router.post('/', protect, upload.single('image'), createListing);
 router.put('/:id', protect, upload.single('image'), updateListing);
 router.delete('/:id', protect, deleteListing);
 
-// Status toggling (PRD Section 17 & 24.2)
-router.patch('/:id/sold', protect, markListingAsSold);
+// Stage 2: Mark as Sold & Status toggling
+router.patch('/:id/sell', protect, markAsSold);
+router.patch('/:id/sold', protect, markAsSold);
 router.patch('/:id/status', protect, updateListingStatus);
 
 export default router;
