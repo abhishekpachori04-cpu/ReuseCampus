@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import API from '../services/api';
+import {
+  getMeApi,
+  loginUserApi,
+  registerUserApi,
+  updateProfileApi,
+} from '../services/api';
 import { AuthContext } from './authContextInstance';
 
 export const AuthProvider = ({ children }) => {
@@ -13,7 +18,7 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         try {
           // Backend provides GET /api/auth/me (and /api/users/me)
-          const res = await API.get('/auth/me');
+          const res = await getMeApi();
           if (res.data?.success && res.data?.data) {
             setUser(res.data.data);
           } else {
@@ -49,7 +54,7 @@ export const AuthProvider = ({ children }) => {
 
   // Helper to authenticate with credentials and unpack { success: true, data: { ... } }
   const loginUser = async (email, password) => {
-    const res = await API.post('/auth/login', { email, password });
+    const res = await loginUserApi({ email, password });
     if (res.data?.success && res.data?.data) {
       const { token } = res.data.data;
       if (token) {
@@ -63,7 +68,7 @@ export const AuthProvider = ({ children }) => {
 
   // Helper to register a new user and unpack { success: true, data: { ... } }
   const registerUser = async (userData) => {
-    const res = await API.post('/auth/register', userData);
+    const res = await registerUserApi(userData);
     if (res.data?.success && res.data?.data) {
       const { token } = res.data.data;
       if (token) {
@@ -83,7 +88,7 @@ export const AuthProvider = ({ children }) => {
 
   // Update user profile helper (PUT /api/users/me)
   const updateProfile = async (profileData) => {
-    const res = await API.put('/users/me', profileData);
+    const res = await updateProfileApi(profileData);
     if (res.data?.success && res.data?.data) {
       setUser((prev) => ({ ...prev, ...res.data.data }));
       return res.data.data;

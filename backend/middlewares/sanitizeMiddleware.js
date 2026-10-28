@@ -1,8 +1,11 @@
+import mongoSanitize from 'express-mongo-sanitize';
+
 /**
- * Architectural Standard (ADR-003: Custom In-House NoSQL Query Sanitizer)
- * Strips object keys containing '$' or '.' from req.body, req.query, and req.params.
- * This prevents MongoDB operator injection without third-party prototype pollution vulnerabilities,
- * while safely preserving legitimate string values like emails, passwords, and Base64 images.
+ * Architectural Standard (ADR-003: Multi-Layer NoSQL Query Sanitizer)
+ * Combines express-mongo-sanitize with custom recursive key stripping:
+ * 1. Sanitizes MongoDB query operators ($) and dot-notation paths (.)
+ * 2. Express 5 compatible (safely mutates in-place without illegal assignment to req.query getter)
+ * 3. Preserves legitimate string values like emails, passwords, and Base64 images
  */
 
 export const sanitizeKeys = (obj) => {
@@ -30,9 +33,22 @@ export const sanitizeKeys = (obj) => {
 };
 
 export const sanitizeInput = (req, res, next) => {
+  // Layer 1: express-mongo-sanitize in-place sanitization
+  if (req.body && typeof req.body === 'object') {
+    mongoSanitize.sanitize(req.body);
+  }
+  if (req.params && typeof req.params === 'object') {
+    mongoSanitize.sanitize(req.params);
+  }
+  if (req.query && typeof req.query === 'object') {
+    mongoSanitize.sanitize(req.query);
+  }
+
+  // Layer 2: Custom recursive operator & dot-notation stripping
   if (req.body) sanitizeKeys(req.body);
   if (req.query) sanitizeKeys(req.query);
   if (req.params) sanitizeKeys(req.params);
+
   next();
 };
 

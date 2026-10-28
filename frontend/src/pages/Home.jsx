@@ -11,7 +11,7 @@ import {
   MessageCircle,
   Package,
 } from 'lucide-react';
-import API from '../services/api';
+import { getListings } from '../services/api';
 import { useDebounce } from '../hooks/useDebounce';
 import useWishlist from '../hooks/useWishlist';
 import ListingCard from '../components/listings/ListingCard';
@@ -82,7 +82,7 @@ const Home = () => {
         if (isFreeOnly) params.isFree = true;
         if (isSavedOnly && savedIds.length > 0) params.ids = savedIds.join(',');
 
-        const res = await API.get('/listings', { params });
+        const res = await getListings(params);
         if (res.data?.success && Array.isArray(res.data?.data)) {
           const items = res.data.data;
           if (isAppending) {

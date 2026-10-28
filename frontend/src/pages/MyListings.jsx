@@ -21,7 +21,13 @@ import {
   ArrowUpRight,
   ArrowLeft,
 } from 'lucide-react';
-import API from '../services/api';
+import {
+  getMyListings,
+  markListingSold,
+  updateListingStatus,
+  updateListing,
+  deleteListing,
+} from '../services/api';
 import useAuth from '../context/useAuth';
 import { compressImageFile } from '../utils/imageCompressor';
 
@@ -57,7 +63,7 @@ const MyListings = () => {
     setErrorMessage('');
 
     try {
-      const res = await API.get('/listings/my');
+      const res = await getMyListings();
       if (res.data?.success && Array.isArray(res.data?.data)) {
         setListings(res.data.data);
       } else {
@@ -112,8 +118,8 @@ const MyListings = () => {
       setErrorMessage('');
 
       const res = isCurrAvailable
-        ? await API.patch(`/listings/${id}/sell`)
-        : await API.patch(`/listings/${id}/status`, { status: newStatus });
+        ? await markListingSold(id)
+        : await updateListingStatus(id, newStatus);
 
       if (res.data?.success) {
         setActionSuccess(
@@ -201,7 +207,7 @@ const MyListings = () => {
         status: editingListing.status,
       };
 
-      const res = await API.put(`/listings/${editingListing._id}`, payload);
+      const res = await updateListing(editingListing._id, payload);
 
       if (res.data?.success && res.data?.data) {
         setActionSuccess('Listing updated successfully!');
@@ -228,7 +234,7 @@ const MyListings = () => {
     setErrorMessage('');
 
     try {
-      const res = await API.delete(`/listings/${deletingItem._id}`);
+      const res = await deleteListing(deletingItem._id);
       if (res.data?.success) {
         setActionSuccess(`"${deletingItem.title}" has been permanently removed.`);
         setListings((prev) => prev.filter((item) => item._id !== deletingItem._id));
@@ -558,6 +564,8 @@ const MyListings = () => {
                   <img
                     src={item.imageUrl}
                     alt={item.title}
+                    loading="lazy"
+                    decoding="async"
                     className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
                       isSold ? 'grayscale-[40%] opacity-85' : ''
                     }`}
@@ -874,6 +882,8 @@ const MyListings = () => {
                     <img
                       src={editingListing.imageUrl}
                       alt="Current"
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         e.target.src =

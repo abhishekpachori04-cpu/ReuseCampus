@@ -14,7 +14,7 @@ import {
   Link as LinkIcon,
   ArrowLeft,
 } from 'lucide-react';
-import API from '../services/api';
+import { createListing } from '../services/api';
 import useAuth from '../context/useAuth';
 
 import { CATEGORIES, CONDITIONS } from '../constants/campusConstants';
@@ -157,7 +157,7 @@ const CreateListing = () => {
         submitData.append('imageUrl', formData.imageUrl.trim());
       }
 
-      const res = await API.post('/listings', submitData);
+      const res = await createListing(submitData);
 
       if (res.data?.success) {
         setSuccessMessage('Listing published successfully! Redirecting...');
@@ -405,6 +405,8 @@ const CreateListing = () => {
                   <img
                     src={previewUrl || formData.imageUrl}
                     alt="Item Preview"
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent pointer-events-none" />

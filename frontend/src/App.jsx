@@ -8,6 +8,7 @@ import CreateListing from './pages/CreateListing';
 import MyListings from './pages/MyListings';
 import ListingDetails from './pages/ListingDetails';
 import NotFound from './pages/NotFound';
+import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import { WishlistProvider } from './context/WishlistContext';
 
@@ -28,8 +29,22 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/create" element={<CreateListing />} />
-              <Route path="/my-listings" element={<MyListings />} />
+              <Route
+                path="/create"
+                element={
+                  <ProtectedRoute>
+                    <CreateListing />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/my-listings"
+                element={
+                  <ProtectedRoute>
+                    <MyListings />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="/listings/:id" element={<ListingDetails />} />
               <Route path="/listing/:id" element={<ListingDetails />} />
               <Route path="*" element={<NotFound />} />

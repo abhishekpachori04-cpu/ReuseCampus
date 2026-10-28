@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, Heart, CheckCircle2, ArrowRight, Share2, Check } from 'lucide-react';
 import useWishlist from '../../context/useWishlist';
@@ -19,6 +19,13 @@ const ListingCard = ({ item, listing: propListing }) => {
   const isSold = listing?.status === 'Sold' || listing?.status === 'SOLD';
   const isFree = Number(listing?.price) === 0;
   const isSaved = checkIsSaved(listing?._id);
+  const shareTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (shareTimerRef.current) clearTimeout(shareTimerRef.current);
+    };
+  }, []);
 
   const sellerInitial = listing?.seller?.name ? listing.seller.name.charAt(0).toUpperCase() : 'S';
   const sellerName = listing?.seller?.name || 'RJIT Student';
@@ -55,7 +62,8 @@ const ListingCard = ({ item, listing: propListing }) => {
         document.body.removeChild(textarea);
       }
       setCopiedShare(true);
-      setTimeout(() => setCopiedShare(false), 2200);
+      if (shareTimerRef.current) clearTimeout(shareTimerRef.current);
+      shareTimerRef.current = setTimeout(() => setCopiedShare(false), 2200);
     } catch {
       // ignore
     }

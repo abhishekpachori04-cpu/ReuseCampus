@@ -19,7 +19,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import useAuth from '../context/useAuth';
-import API from '../services/api';
+import { forgotPassword, verifyOtp, resetPassword } from '../services/api';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -69,11 +69,15 @@ const Login = () => {
 
   // Focus first OTP input when transitioning to Step 2
   useEffect(() => {
+    let timer = null;
     if (isRecoveryOpen && recoveryStep === 2) {
-      setTimeout(() => {
+      timer = setTimeout(() => {
         otpInputRefs.current[0]?.focus();
       }, 150);
     }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [isRecoveryOpen, recoveryStep]);
 
   const handleChange = (e) => {
@@ -148,9 +152,7 @@ const Login = () => {
     setRecoveryLoading(true);
 
     try {
-      const res = await API.post('/auth/forgot-password', {
-        identifier: cleanIdentifier,
-      });
+      const res = await forgotPassword(cleanIdentifier);
 
       if (res.data?.success) {
         setMaskedEmail(res.data.maskedEmail || 'your registered campus email');
@@ -224,9 +226,7 @@ const Login = () => {
     setRecoveryError('');
 
     try {
-      const res = await API.post('/auth/forgot-password', {
-        identifier: recoveryIdentifier.trim(),
-      });
+      const res = await forgotPassword(recoveryIdentifier.trim());
 
       if (res.data?.success) {
         setTimerSeconds(600);
@@ -256,10 +256,7 @@ const Login = () => {
     setRecoveryLoading(true);
 
     try {
-      const res = await API.post('/auth/verify-otp', {
-        identifier: recoveryIdentifier.trim(),
-        otp: fullOtp,
-      });
+      const res = await verifyOtp(recoveryIdentifier.trim(), fullOtp);
 
       if (res.data?.success && res.data?.resetToken) {
         setResetToken(res.data.resetToken);
@@ -298,10 +295,7 @@ const Login = () => {
     setRecoveryLoading(true);
 
     try {
-      const res = await API.post('/auth/reset-password', {
-        resetToken,
-        newPassword,
-      });
+      const res = await resetPassword(resetToken, newPassword);
 
       if (res.data?.success) {
         setIsRecoveryOpen(false);

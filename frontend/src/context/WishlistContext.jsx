@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { WishlistContext } from './wishlistContextInstance';
 
 const STORAGE_KEY = 'reusecampus_wishlist';
@@ -70,16 +70,19 @@ export const WishlistProvider = ({ children }) => {
     [savedItems]
   );
 
-  const value = {
-    savedItems,
-    toggleSaveItem,
-    isSaved,
-    // Aliases for seamless backward compatibility
-    savedIds: savedItems,
-    toggleWishlist: toggleSaveItem,
-    isWishlisted: isSaved,
-    count: savedItems.length,
-  };
+  const value = useMemo(
+    () => ({
+      savedItems,
+      toggleSaveItem,
+      isSaved,
+      // Aliases for seamless backward compatibility
+      savedIds: savedItems,
+      toggleWishlist: toggleSaveItem,
+      isWishlisted: isSaved,
+      count: savedItems.length,
+    }),
+    [savedItems, toggleSaveItem, isSaved]
+  );
 
   return (
     <WishlistContext.Provider value={value}>

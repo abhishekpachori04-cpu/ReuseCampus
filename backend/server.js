@@ -18,7 +18,7 @@ import authRoutes from './routes/authRoutes.js';
 import listingRoutes from './routes/listingRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import mongoose from 'mongoose';
-import { notFound, errorHandler } from './middlewares/errorMiddleware.js';
+import { notFound, errorHandler } from './middlewares/errorHandler.js';
 import { globalApiLimiter } from './middlewares/rateLimiter.js';
 import sanitizeInput from './middlewares/sanitizeMiddleware.js';
 
@@ -50,8 +50,14 @@ validateEnvironment();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// HTTP Security Headers (allows Base64 / cross-origin images to render cleanly)
-app.use(helmet({ crossOriginResourcePolicy: false }));
+// HTTP Security Headers (secures headers while allowing cross-origin image rendering)
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    contentSecurityPolicy: false,
+  })
+);
 
 // Connect to MongoDB Database (bypassed in test environment for deterministic headless unit tests)
 if (process.env.NODE_ENV !== 'test') {
@@ -62,7 +68,7 @@ if (process.env.NODE_ENV !== 'test') {
   }
 }
 
-// CORS Configuration (supporting local development and dynamic production URLs via CLIENT_URL)
+// Strict CORS Configuration (allowing only trusted frontend origins with restricted HTTP methods)
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
@@ -73,19 +79,22 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, or Postman)
+      // Allow requests with no origin (like mobile apps, curl, or automated test runners)
       if (!origin) return callback(null, true);
       
       const isAllowed = allowedOrigins.some(
-        (allowed) => origin === allowed || (origin && origin.startsWith(allowed))
+        (allowed) => origin === allowed || (origin && origin.replace(/\/$/, '') === allowed.replace(/\/$/, ''))
       );
 
-      if (isAllowed || process.env.NODE_ENV !== 'production') {
+      if (isAllowed || process.env.NODE_ENV === 'development') {
         return callback(null, true);
       }
       return callback(new Error(`Origin ${origin} not allowed by CORS`));
     },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     credentials: true,
+    maxAge: 86400,
   })
 );
 
@@ -93,7 +102,7 @@ app.use(
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// NoSQL Injection Protection Middleware (strips $ and . keys from body, query, and params)
+// NoSQL Injection Protection Middleware (express-mongo-sanitize + in-house recursive key stripping)
 app.use(sanitizeInput);
 
 // Global API Rate Limiter (150 requests per 15 mins per IP on /api)

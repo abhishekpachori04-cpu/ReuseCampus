@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   GraduationCap,
@@ -38,6 +38,13 @@ const Navbar = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState('');
   const [profileError, setProfileError] = useState('');
+  const profileSuccessTimer = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (profileSuccessTimer.current) clearTimeout(profileSuccessTimer.current);
+    };
+  }, []);
 
   // Sync profile fields when modal opens
   useEffect(() => {
@@ -96,7 +103,8 @@ const Navbar = () => {
         });
       }
       setProfileSuccess('Campus profile updated successfully!');
-      setTimeout(() => {
+      if (profileSuccessTimer.current) clearTimeout(profileSuccessTimer.current);
+      profileSuccessTimer.current = setTimeout(() => {
         setProfileSuccess('');
       }, 3000);
     } catch (err) {

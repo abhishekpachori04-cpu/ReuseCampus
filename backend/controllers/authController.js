@@ -7,7 +7,7 @@ import sendEmailOtp from '../utils/sendEmailOtp.js';
 import sendWelcomeEmail from '../utils/sendWelcomeEmail.js';
 
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'secret_fallback', {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: '30d',
   });
 };
@@ -345,7 +345,7 @@ export const verifyOtp = asyncHandler(async (req, res) => {
   // Issue 10-minute password reset JWT
   const resetToken = jwt.sign(
     { id: user._id, purpose: 'password_reset' },
-    process.env.JWT_SECRET || 'secret_fallback',
+    process.env.JWT_SECRET,
     { expiresIn: '10m' }
   );
 
@@ -380,7 +380,7 @@ export const resetPassword = asyncHandler(async (req, res) => {
 
   let decoded;
   try {
-    decoded = jwt.verify(resetToken, process.env.JWT_SECRET || 'secret_fallback');
+    decoded = jwt.verify(resetToken, process.env.JWT_SECRET);
   } catch {
     return res.status(401).json({
       success: false,
