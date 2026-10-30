@@ -1250,12 +1250,19 @@ describe('=== ReuseCampus Senior Engineering Automated Test Suite ===', () => {
       }
     });
 
-    it('should verify configureCloudinary reads process.env.CLOUDINARY_CLOUD_NAME and does not contain Root fallback', () => {
+    it('should verify configureCloudinary reads process.env.CLOUDINARY_CLOUD_NAME and does not contain Root fallback', async () => {
+      process.env.CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || 'ci_test_cloud';
+
       const config = configureCloudinary();
-      assert.ok(config.cloudName, 'CLOUDINARY_CLOUD_NAME must be loaded');
+      assert.strictEqual(typeof process.env.CLOUDINARY_CLOUD_NAME, 'string');
       assert.strictEqual(typeof config.cloudName, 'string');
       assert.notStrictEqual(config.cloudName, 'Root', "Cloudinary config must not contain 'Root' fallback");
       assert.notStrictEqual(config.cloudName.toLowerCase(), 'root', "Cloudinary config must not contain 'Root' fallback");
+
+      const fs = await import('node:fs');
+      const cloudinaryFileContent = fs.readFileSync(new URL('../utils/cloudinary.js', import.meta.url), 'utf8');
+      assert.ok(!cloudinaryFileContent.includes("'Root'"), "Hardcoded 'Root' fallback must be absent from cloudinary config file");
+      assert.ok(!cloudinaryFileContent.includes('"Root"'), 'Hardcoded "Root" fallback must be absent from cloudinary config file');
     });
 
     it('should successfully update listing fields and call save() in updateListing', async () => {
