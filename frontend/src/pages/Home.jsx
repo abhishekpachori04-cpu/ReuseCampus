@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   ShieldCheck,
@@ -26,8 +26,7 @@ import ListingSkeleton from '../components/ui/ListingSkeleton';
 const Home = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { updateSavedItems } = useAuth();
-  const { savedIds, setSavedItems, count: savedCount } = useWishlist();
+  const { savedIds, count: savedCount } = useWishlist();
 
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,11 +45,34 @@ const Home = () => {
   const [selectedStatus, setSelectedStatus] = useState('ALL');
   const [sortBy, setSortBy] = useState('newest');
   const [isFreeOnly, setIsFreeOnly] = useState(false);
-  const [isSavedOnly, setIsSavedOnly] = useState(false);
+
+  // URL-driven and local Saved Items filter (single source of truth, zero loop)
+  const searchParams = new URLSearchParams(location.search);
+  const isSavedUrl = searchParams.get('saved') === 'true';
+  const [isSavedLocal, setIsSavedLocal] = useState(false);
+  const isSavedOnly = isSavedUrl || isSavedLocal;
+
+  // Clean toggle handler that seamlessly synchronizes URL & state without re-mount loops
+  const handleToggleSavedOnly = useCallback(
+    (nextVal) => {
+      const shouldBeSaved = typeof nextVal === 'boolean' ? nextVal : !isSavedOnly;
+      const nextParams = new URLSearchParams(location.search);
+      if (shouldBeSaved) {
+        nextParams.set('saved', 'true');
+      } else {
+        nextParams.delete('saved');
+      }
+      const searchStr = nextParams.toString();
+      navigate(searchStr ? `/?${searchStr}` : '/', { replace: true });
+      setIsSavedLocal(shouldBeSaved);
+    },
+    [isSavedOnly, location.search, navigate]
+  );
 
   // Debounced search to prevent excessive backend querying
   const debouncedSearch = useDebounce(searchQuery, 300);
 
+  // Fetch listings for marketplace browse feed (independent of wishlist state to prevent loops)
   const fetchListings = useCallback(
     async (pageToFetch = 1, isAppending = false) => {
       if (isAppending) {
@@ -60,21 +82,10 @@ const Home = () => {
       }
       setError('');
 
-      // If user toggled Saved items only and has none bookmarked yet, avoid network call
-      if (isSavedOnly && savedIds.length === 0) {
-        setListings([]);
-        setPage(1);
-        setHasMore(false);
-        setTotalCount(0);
-        setLoading(false);
-        setLoadingMore(false);
-        return;
-      }
-
       try {
         const params = {
           page: pageToFetch,
-          limit: 8,
+          limit: 12,
         };
         if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
         if (selectedCategory !== 'All') params.category = selectedCategory;
@@ -82,26 +93,13 @@ const Home = () => {
         if (selectedStatus) params.status = selectedStatus;
         if (sortBy) params.sort = sortBy;
         if (isFreeOnly) params.isFree = true;
-        if (isSavedOnly && savedIds.length > 0) params.ids = savedIds.join(',');
 
         const res = await getListings(params);
-        if (res.data?.success && Array.isArray(res.data?.data)) {
-          const items = res.data.data.filter(
+        const responseData = res.data?.data || res.data?.listings || res.data?.savedItems;
+        if (res.data?.success && Array.isArray(responseData)) {
+          const items = responseData.filter(
             (item) => item !== null && item !== undefined && item._id
           );
-
-          // Auto-Cleanup: When viewing saved items, prune dead IDs if any listing was removed
-          if (isSavedOnly && savedIds.length > 0) {
-            const validIds = items.map((i) => String(i._id));
-            if (validIds.length < savedIds.length) {
-              if (typeof setSavedItems === 'function') {
-                setSavedItems(validIds);
-              }
-              if (typeof updateSavedItems === 'function') {
-                updateSavedItems(validIds);
-              }
-            }
-          }
 
           if (isAppending) {
             setListings((prev) => [...prev, ...items]);
@@ -111,7 +109,7 @@ const Home = () => {
 
           setPage(pageToFetch);
           setHasMore(Boolean(res.data.pagination?.hasMore));
-          setTotalCount(res.data.pagination?.total || 0);
+          setTotalCount(res.data.pagination?.total || items.length);
         } else {
           if (!isAppending) setListings([]);
           setHasMore(false);
@@ -123,9 +121,10 @@ const Home = () => {
         setLoadingMore(false);
       }
     },
-    [debouncedSearch, selectedCategory, selectedCondition, selectedStatus, sortBy, isFreeOnly, isSavedOnly, savedIds, setSavedItems, updateSavedItems]
+    [debouncedSearch, selectedCategory, selectedCondition, selectedStatus, sortBy, isFreeOnly]
   );
 
+  // Trigger marketplace fetch whenever browse filters change
   useEffect(() => {
     let ignore = false;
     const loadData = async () => {
@@ -140,26 +139,13 @@ const Home = () => {
     };
   }, [fetchListings]);
 
-  // Handle wishlist filter trigger via ?saved=true
+  // Smooth scroll to feed when ?saved=true is loaded without triggering any state changes
   useEffect(() => {
-    let ignore = false;
-    const syncSavedFilter = async () => {
-      await Promise.resolve();
-      if (!ignore) {
-        const searchParams = new URLSearchParams(location.search);
-        if (searchParams.get('saved') === 'true') {
-          setIsSavedOnly(true);
-          setIsFreeOnly(false);
-          const feedElement = document.getElementById('browse-feed');
-          feedElement?.scrollIntoView({ behavior: 'smooth' });
-        }
-      }
-    };
-    syncSavedFilter();
-    return () => {
-      ignore = true;
-    };
-  }, [location.search]);
+    if (isSavedUrl) {
+      const feedElement = document.getElementById('browse-feed');
+      feedElement?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [isSavedUrl]);
 
   // Handle shared link with ?item=<id> by navigating directly to full listing details
   useEffect(() => {
@@ -169,6 +155,60 @@ const Home = () => {
       navigate(`/listings/${sharedItemId}`, { replace: true });
     }
   }, [navigate]);
+
+  // Normalized saved IDs array for instant memory comparisons
+  const normalizedSavedIds = useMemo(() => {
+    return (Array.isArray(savedIds) ? savedIds : [])
+      .map((item) => (typeof item === 'object' && item !== null ? String(item._id || item.id || '') : String(item)))
+      .filter(Boolean);
+  }, [savedIds]);
+
+  // Quietly load any bookmarked items that aren't in memory yet (zero screen flicker or loading spinners)
+  const missingSavedIds = useMemo(() => {
+    if (!isSavedOnly || normalizedSavedIds.length === 0) return [];
+    const loadedIds = new Set(listings.map((l) => String(l._id)));
+    return normalizedSavedIds.filter((id) => !loadedIds.has(id));
+  }, [isSavedOnly, normalizedSavedIds, listings]);
+
+  const missingSavedKey = missingSavedIds.join(',');
+
+  useEffect(() => {
+    if (!missingSavedKey) return;
+    let isCancelled = false;
+    const fetchMissing = async () => {
+      try {
+        const res = await getListings({ ids: missingSavedKey, status: 'ALL', limit: 100 });
+        const responseData = res.data?.data || res.data?.listings || res.data?.savedItems;
+        if (!isCancelled && res.data?.success && Array.isArray(responseData)) {
+          const newItems = responseData.filter(
+            (item) => item !== null && item !== undefined && item._id
+          );
+          if (newItems.length > 0) {
+            setListings((prev) => {
+              const prevIds = new Set(prev.map((i) => String(i._id)));
+              const toAdd = newItems.filter((i) => !prevIds.has(String(i._id)));
+              return toAdd.length > 0 ? [...prev, ...toAdd] : prev;
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Quiet fetch for missing saved items:', err);
+      }
+    };
+    fetchMissing();
+    return () => {
+      isCancelled = true;
+    };
+  }, [missingSavedKey]);
+
+  // Instant zero-blink client-side memory filtering for Saved Items view
+  const displayedListings = useMemo(() => {
+    const valid = listings.filter((item) => item !== null && item !== undefined && item._id);
+    if (!isSavedOnly) {
+      return valid;
+    }
+    return valid.filter((item) => normalizedSavedIds.includes(String(item._id)));
+  }, [listings, isSavedOnly, normalizedSavedIds]);
 
   const handleLoadMore = () => {
     if (!loadingMore && hasMore) {
@@ -183,12 +223,23 @@ const Home = () => {
     setSelectedStatus('ALL');
     setSortBy('newest');
     setIsFreeOnly(false);
-    setIsSavedOnly(false);
+    setIsSavedLocal(false);
+    if (isSavedUrl) {
+      const nextParams = new URLSearchParams(location.search);
+      nextParams.delete('saved');
+      const searchStr = nextParams.toString();
+      navigate(searchStr ? `/?${searchStr}` : '/', { replace: true });
+    }
   };
 
   const handleExploreFreeDonations = () => {
     setIsFreeOnly(true);
-    setIsSavedOnly(false);
+    setIsSavedLocal(false);
+    if (isSavedUrl) {
+      const nextParams = new URLSearchParams(location.search);
+      nextParams.delete('saved');
+      navigate(nextParams.toString() ? `/?${nextParams.toString()}` : '/', { replace: true });
+    }
     const feedElement = document.getElementById('browse-feed');
     feedElement?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -344,7 +395,7 @@ const Home = () => {
           isFreeOnly={isFreeOnly}
           onToggleFreeOnly={setIsFreeOnly}
           isSavedOnly={isSavedOnly}
-          onToggleSavedOnly={setIsSavedOnly}
+          onToggleSavedOnly={handleToggleSavedOnly}
           savedCount={savedCount}
         />
 
@@ -362,7 +413,7 @@ const Home = () => {
               <ListingSkeleton key={index} />
             ))}
           </div>
-        ) : listings.length === 0 ? (
+        ) : displayedListings.length === 0 ? (
           <div className="py-16 px-4 bg-white rounded-3xl border border-dashed border-slate-300 text-center space-y-4 shadow-sm">
             <div className="w-14 h-14 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto">
               <PackageOpen className="w-7 h-7" />
@@ -435,14 +486,12 @@ const Home = () => {
         ) : (
           <div className="space-y-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-              {listings
-                .filter((item) => item !== null && item !== undefined && item._id)
-                .map((item) => (
-                  <ListingCard
-                    key={item._id}
-                    item={item}
-                  />
-                ))}
+              {displayedListings.map((item) => (
+                <ListingCard
+                  key={item._id}
+                  item={item}
+                />
+              ))}
             </div>
 
             {/* Load More Button */}

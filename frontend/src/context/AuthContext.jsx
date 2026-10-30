@@ -100,7 +100,7 @@ export const AuthProvider = ({ children }) => {
   const updateSavedItems = (savedItemIds) => {
     const cleanedIds = Array.isArray(savedItemIds)
       ? savedItemIds
-          .map((item) => (typeof item === 'object' && item !== null ? item._id : item))
+          .map((item) => (typeof item === 'object' && item !== null ? String(item._id || item.id || '') : String(item)))
           .filter(Boolean)
       : [];
     setUser((prev) => {

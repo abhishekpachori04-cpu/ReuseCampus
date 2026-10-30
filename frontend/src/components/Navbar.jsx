@@ -33,10 +33,24 @@ const Navbar = () => {
   const { savedItems } = useWishlist();
 
   // Synchronize badge count across AuthContext user.savedItems and WishlistContext savedItems
-  const badgeCount =
-    Array.isArray(user?.savedItems)
-      ? user.savedItems.length
-      : savedItems.length;
+  const badgeCount = Math.max(
+    Array.isArray(user?.savedItems) ? user.savedItems.length : 0,
+    Array.isArray(savedItems) ? savedItems.length : 0
+  );
+
+  const searchParams = new URLSearchParams(location.search);
+  const isSavedActive = location.pathname === '/' && searchParams.get('saved') === 'true';
+
+  const handleWishlistClick = () => {
+    if (location.pathname === '/' && isSavedActive) {
+      searchParams.delete('saved');
+      const searchStr = searchParams.toString();
+      navigate(searchStr ? `/?${searchStr}` : '/', { replace: true });
+    } else {
+      searchParams.set('saved', 'true');
+      navigate(`/?${searchParams.toString()}`);
+    }
+  };
 
   // Profile modal edit fields
   const [profileName, setProfileName] = useState('');
@@ -188,16 +202,18 @@ const Navbar = () => {
               {/* Navbar Wishlist Heart Icon Button */}
               <button
                 type="button"
-                onClick={() => {
-                  navigate('/saved');
-                }}
-                className="relative p-2 rounded-full text-slate-600 hover:text-rose-600 hover:bg-rose-50/80 transition-all cursor-pointer active:scale-95 group"
+                onClick={handleWishlistClick}
+                className={`relative p-2 rounded-full transition-all cursor-pointer active:scale-95 group ${
+                  isSavedActive
+                    ? 'text-rose-600 bg-rose-50 shadow-sm ring-1 ring-rose-200'
+                    : 'text-slate-600 hover:text-rose-600 hover:bg-rose-50/80'
+                }`}
                 title={`Saved Items (${badgeCount})`}
                 aria-label="Wishlist"
               >
                 <Heart
                   className={`w-5 h-5 transition-transform group-hover:scale-110 ${
-                    badgeCount > 0 ? 'fill-red-500 text-red-500' : 'text-slate-600'
+                    isSavedActive || badgeCount > 0 ? 'fill-red-500 text-red-500' : 'text-slate-600'
                   }`}
                 />
                 {badgeCount > 0 && (
@@ -279,16 +295,16 @@ const Navbar = () => {
               {/* Mobile Wishlist */}
               <button
                 type="button"
-                onClick={() => {
-                  navigate('/saved');
-                }}
-                className="relative p-1.5 rounded-lg text-slate-600 hover:text-rose-600 transition-colors cursor-pointer shrink-0"
+                onClick={handleWishlistClick}
+                className={`relative p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 ${
+                  isSavedActive ? 'text-rose-600 bg-rose-50' : 'text-slate-600 hover:text-rose-600'
+                }`}
                 title={`Saved Items (${badgeCount})`}
                 aria-label="Wishlist"
               >
                 <Heart
                   className={`w-4 h-4 sm:w-5 sm:h-5 ${
-                    badgeCount > 0 ? 'fill-red-500 text-red-500' : 'text-slate-600'
+                    isSavedActive || badgeCount > 0 ? 'fill-red-500 text-red-500' : 'text-slate-600'
                   }`}
                 />
                 {badgeCount > 0 && (

@@ -192,9 +192,11 @@ export const toggleSaveItem = async (req, res) => {
     }
 
     const idString = id.toString();
-    const existingIndex = user.savedItems.findIndex(
-      (savedId) => (savedId ? savedId.toString() : '') === idString
-    );
+    const existingIndex = user.savedItems.findIndex((savedId) => {
+      if (!savedId) return false;
+      const savedIdStr = savedId._id ? savedId._id.toString() : savedId.toString();
+      return savedIdStr === idString;
+    });
 
     let isSaved = false;
     if (existingIndex > -1) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Heart,
@@ -29,6 +29,12 @@ const SavedItems = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Stable ref for savedIds to prevent infinite re-render cycles
+  const savedIdsRef = useRef(savedIds);
+  useEffect(() => {
+    savedIdsRef.current = savedIds;
+  }, [savedIds]);
+
   const fetchWishlist = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -36,53 +42,67 @@ const SavedItems = () => {
     try {
       let validListings = [];
 
+      // Normalize current saved IDs from context/localStorage ref
+      const currentIds = (Array.isArray(savedIdsRef.current) ? savedIdsRef.current : [])
+        .map((item) => (typeof item === 'object' && item !== null ? String(item._id || item.id || '') : String(item)))
+        .filter(Boolean);
+
       if (isAuthenticated) {
         // Authenticated: Fetch from GET /api/users/saved with server-side auto-cleanup
         try {
           const res = await getSavedItemsApi();
-          if (res.data?.success && Array.isArray(res.data?.data)) {
-            validListings = res.data.data.filter(
+          const responseList = res.data?.data || res.data?.savedItems || res.data?.listings;
+          if (res.data?.success && Array.isArray(responseList) && responseList.length > 0) {
+            validListings = responseList.filter(
               (item) => item !== null && item !== undefined && item._id
             );
           }
-        } catch {
-          // Fallback to getListings by IDs if user endpoint has temporary failure
-          if (savedIds.length > 0) {
-            const res = await getListings({ ids: savedIds.join(',') });
-            if (res.data?.success && Array.isArray(res.data?.data)) {
-              validListings = res.data.data.filter(
-                (item) => item !== null && item !== undefined && item._id
-              );
-            }
-          }
+        } catch (err) {
+          console.warn('[SavedItems] getSavedItemsApi fallback:', err);
         }
-      } else {
-        // Unauthenticated visitor: Fetch by saved IDs from localStorage
-        if (savedIds.length > 0) {
-          const res = await getListings({ ids: savedIds.join(',') });
-          if (res.data?.success && Array.isArray(res.data?.data)) {
-            validListings = res.data.data.filter(
+      }
+
+      // If validListings is empty, but we have saved IDs in localStorage or context, fetch them
+      if (validListings.length === 0 && currentIds.length > 0) {
+        try {
+          // Pass status: 'ALL' so saved items that were marked Sold are still displayed to the user
+          const res = await getListings({ ids: currentIds.join(','), status: 'ALL', limit: 100 });
+          const responseList = res.data?.data || res.data?.listings || res.data?.savedItems;
+          if (res.data?.success && Array.isArray(responseList)) {
+            validListings = responseList.filter(
               (item) => item !== null && item !== undefined && item._id
             );
           }
+        } catch (err) {
+          console.error('[SavedItems] getListings by IDs failed:', err);
         }
       }
 
       // Filter out any null or malformed items defensively
-      const cleanItems = validListings.filter((item) => item !== null && item !== undefined);
+      const cleanItems = validListings.filter((item) => item !== null && item !== undefined && item._id);
       setItems(cleanItems);
 
       // Extract valid IDs
       const cleanIds = cleanItems.map((item) => String(item._id));
 
-      // Synchronize global AuthContext / User state so badge immediately matches
-      if (typeof updateSavedItems === 'function') {
-        updateSavedItems(cleanIds);
-      }
+      // Synchronize only if IDs actually changed to prevent triggering re-render cascades
+      const currentKey = currentIds.sort().join(',');
+      const cleanKey = cleanIds.sort().join(',');
 
-      // Synchronize global WishlistContext & localStorage
-      if (typeof setSavedItems === 'function') {
-        setSavedItems(cleanIds);
+      if (cleanIds.length > 0 && cleanKey !== currentKey) {
+        if (typeof updateSavedItems === 'function') {
+          updateSavedItems(cleanIds);
+        }
+        if (typeof setSavedItems === 'function') {
+          setSavedItems(cleanIds);
+        }
+      } else if (currentIds.length === 0 && cleanIds.length === 0 && currentKey !== '') {
+        if (typeof updateSavedItems === 'function') {
+          updateSavedItems([]);
+        }
+        if (typeof setSavedItems === 'function') {
+          setSavedItems([]);
+        }
       }
     } catch (err) {
       console.error('[Fetch Saved Items Error]:', err);
@@ -90,7 +110,7 @@ const SavedItems = () => {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, savedIds, setSavedItems, updateSavedItems]);
+  }, [isAuthenticated, setSavedItems, updateSavedItems]);
 
   useEffect(() => {
     let ignore = false;
