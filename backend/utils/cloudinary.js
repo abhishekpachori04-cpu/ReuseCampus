@@ -1,11 +1,47 @@
+import 'dotenv/config';
 import { v2 as cloudinary } from 'cloudinary';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY || process.env.API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET || process.env.API_SECRET,
-  secure: true,
-});
+// Ensure .env variables are loaded regardless of evaluation/import order
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config();
+
+console.log("Cloud Name Loaded:", process.env.CLOUDINARY_CLOUD_NAME ? "Yes" : "No - Check .env file");
+
+/**
+ * Configure Cloudinary instance strictly using environment credentials
+ */
+export const configureCloudinary = () => {
+  dotenv.config({ path: path.resolve(__dirname, '../.env') });
+  dotenv.config();
+
+  const cloud_name = process.env.CLOUDINARY_CLOUD_NAME;
+  const api_key = process.env.CLOUDINARY_API_KEY;
+  const api_secret = process.env.CLOUDINARY_API_SECRET;
+
+  cloudinary.config({
+    cloud_name,
+    api_key,
+    api_secret,
+    secure: true,
+  });
+
+  return {
+    cloud_name,
+    cloudName: cloud_name,
+    api_key,
+    apiKey: api_key,
+    api_secret,
+    apiSecret: api_secret,
+  };
+};
+
+configureCloudinary();
+
 
 /**
  * Uploads a file buffer or base64 data URI to Cloudinary with auto-compression.
@@ -17,8 +53,11 @@ cloudinary.config({
  */
 export const uploadToCloudinary = (fileInput, mimetype = 'image/jpeg') => {
   return new Promise((resolve, reject) => {
+    configureCloudinary();
+
     const uploadOptions = {
       folder: 'reusecampus',
+      resource_type: 'image',
       format: 'webp',
       transformation: [
         { width: 800, crop: 'limit' },

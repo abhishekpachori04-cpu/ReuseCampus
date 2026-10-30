@@ -151,8 +151,10 @@ const ListingDetails = () => {
       setStatusMessage('');
       const res = await markListingAsSold(id);
       if (res.data?.success) {
+        const updated = res.data?.data || res.data?.listing;
         setListing((prev) => ({
           ...prev,
+          ...(updated || {}),
           status: 'Sold',
         }));
         setStatusMessage('Item marked as Sold successfully!');

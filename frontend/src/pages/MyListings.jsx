@@ -43,6 +43,7 @@ const MyListings = () => {
 
   // Edit Listing State
   const [editingListing, setEditingListing] = useState(null);
+  const [isDonate, setIsDonate] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
   const [compressingImage, setCompressingImage] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
@@ -122,13 +123,18 @@ const MyListings = () => {
         : await updateListingStatus(id, newStatus);
 
       if (res.data?.success) {
+        const updatedItem = res.data?.data || res.data?.listing;
         setActionSuccess(
           newStatus === 'Sold'
             ? 'Item marked as SOLD! Great job passing it down.'
             : 'Item re-listed as AVAILABLE for campus buyers.'
         );
         setListings((prev) =>
-          prev.map((item) => (item._id === id ? { ...item, status: newStatus } : item))
+          prev.map((item) =>
+            item._id === id
+              ? (updatedItem ? { ...item, ...updatedItem, status: newStatus } : { ...item, status: newStatus })
+              : item
+          )
         );
       }
     } catch (error) {
@@ -138,10 +144,12 @@ const MyListings = () => {
 
   // Open Edit Modal with pre-filled values
   const handleOpenEdit = (item) => {
+    const isFree = Number(item.price) === 0 || item.isFree === true;
+    setIsDonate(isFree);
     setEditingListing({
       _id: item._id,
       title: item.title || '',
-      price: item.price ?? '',
+      price: item.price !== undefined && item.price !== null ? String(item.price) : '',
       category: item.category || 'Books',
       condition: item.condition || 'Good',
       description: item.description || '',
@@ -179,7 +187,7 @@ const MyListings = () => {
 
     const trimmedTitle = editingListing.title.trim();
     const trimmedDesc = editingListing.description.trim();
-    const numPrice = Number(editingListing.price);
+    const numPrice = isDonate ? 0 : Number(editingListing.price);
 
     if (!trimmedTitle) {
       setErrorMessage('Item title cannot be empty or whitespace only.');
@@ -189,7 +197,7 @@ const MyListings = () => {
       setErrorMessage('Item description cannot be empty or whitespace only.');
       return;
     }
-    if (isNaN(numPrice) || numPrice < 0) {
+    if (!isDonate && (editingListing.price === '' || isNaN(numPrice) || numPrice < 0)) {
       setErrorMessage('Price cannot be negative. Set ₹0 for free giveaways.');
       return;
     }
@@ -209,11 +217,14 @@ const MyListings = () => {
 
       const res = await updateListing(editingListing._id, payload);
 
-      if (res.data?.success && res.data?.data) {
+      if (res.data?.success) {
+        const updatedItem = res.data?.data || res.data?.listing;
         setActionSuccess('Listing updated successfully!');
-        setListings((prev) =>
-          prev.map((item) => (item._id === editingListing._id ? res.data.data : item))
-        );
+        if (updatedItem) {
+          setListings((prev) =>
+            prev.map((item) => (item._id === editingListing._id ? { ...item, ...updatedItem } : item))
+          );
+        }
         setEditingListing(null);
       }
     } catch (error) {
@@ -712,21 +723,23 @@ const MyListings = () => {
             </button>
 
             <div>
-              <button
-                type="button"
-                onClick={() => setEditingListing(null)}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-emerald-700 transition-colors cursor-pointer group mb-2.5"
-                aria-label="Back"
-              >
-                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-                <span>Back</span>
-              </button>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 uppercase tracking-wider border border-emerald-200">
-                <Edit3 className="w-3 h-3" />
-                Edit Listing
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                <button
+                  type="button"
+                  onClick={() => setEditingListing(null)}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-emerald-700 transition-colors cursor-pointer group"
+                  aria-label="Back"
+                >
+                  <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform text-slate-400 group-hover:text-emerald-600" />
+                  <span>Back</span>
+                </button>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 uppercase tracking-wider border border-emerald-200">
+                  <Edit3 className="w-3.5 h-3.5 text-emerald-600" />
+                  Edit Listing
+                </div>
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mt-1.5">Edit Item Details</h3>
-              <p className="text-xs text-slate-500">
+              <h3 className="text-xl font-bold text-slate-900 mt-1">Edit Item Details</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
                 Update item specifications, change price, or upload a replacement photo.
               </p>
             </div>
@@ -799,13 +812,14 @@ const MyListings = () => {
                   <input
                     id="edit-free-donation-toggle"
                     type="checkbox"
-                    checked={Number(editingListing.price) === 0}
+                    checked={isDonate}
                     onChange={(e) => {
                       const checked = e.target.checked;
-                      setEditingListing({
-                        ...editingListing,
+                      setIsDonate(checked);
+                      setEditingListing((prev) => ({
+                        ...prev,
                         price: checked ? '0' : '',
-                      });
+                      }));
                     }}
                     className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer accent-emerald-600"
                   />
@@ -819,7 +833,7 @@ const MyListings = () => {
                   </div>
                 </label>
 
-                {Number(editingListing.price) === 0 && (
+                {isDonate && (
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-600 text-white shadow-sm shrink-0">
                     FREE
                   </span>
@@ -841,11 +855,11 @@ const MyListings = () => {
                       onChange={(e) =>
                         setEditingListing({ ...editingListing, price: e.target.value })
                       }
-                      disabled={Number(editingListing.price) === 0}
-                      required
-                      placeholder={Number(editingListing.price) === 0 ? '0 (Free Donation)' : '0 for Free'}
+                      disabled={isDonate}
+                      required={!isDonate}
+                      placeholder={isDonate ? '0 (Free Donation to Juniors)' : '0 (Set 0 for free giveaway)'}
                       className={`w-full pl-9 pr-3 py-2.5 rounded-xl border text-sm font-mono transition-all ${
-                        Number(editingListing.price) === 0
+                        isDonate
                           ? 'bg-emerald-50/50 border-emerald-300 text-emerald-800 font-bold cursor-not-allowed'
                           : 'border-slate-200 bg-slate-50/50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white'
                       }`}

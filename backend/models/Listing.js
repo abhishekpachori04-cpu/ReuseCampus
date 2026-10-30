@@ -98,11 +98,10 @@ const listingSchema = new mongoose.Schema(
   }
 );
 
-listingSchema.pre('save', function (next) {
+listingSchema.pre('save', function () {
   if (!this.creatorId && this.seller) {
     this.creatorId = this.seller;
   }
-  next();
 });
 
 /**

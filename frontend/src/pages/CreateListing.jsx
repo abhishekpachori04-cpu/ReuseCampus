@@ -119,7 +119,7 @@ const CreateListing = () => {
 
     const trimmedTitle = formData.title.trim();
     const trimmedDescription = formData.description.trim();
-    const numPrice = Number(formData.price);
+    const numPrice = isFreeDonation ? 0 : Number(formData.price);
 
     if (!trimmedTitle) {
       setErrorMessage('Please provide an item title (cannot be whitespace only).');
@@ -131,7 +131,7 @@ const CreateListing = () => {
       return;
     }
 
-    if (isNaN(numPrice) || numPrice < 0) {
+    if (!isFreeDonation && (formData.price === '' || isNaN(numPrice) || numPrice < 0)) {
       setErrorMessage('Price cannot be negative. Set ₹0 for free giveaways.');
       return;
     }
@@ -184,7 +184,7 @@ const CreateListing = () => {
 
       <div className="bg-white/95 backdrop-blur-md rounded-3xl p-5 sm:p-8 md:p-10 border border-slate-200/80 shadow-2xl shadow-slate-900/5 space-y-8 relative z-10">
         <div>
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex flex-wrap items-center gap-3 mb-4">
             <button
               type="button"
               onClick={() => navigate(-1)}
@@ -343,7 +343,7 @@ const CreateListing = () => {
                   disabled={isFreeDonation}
                   placeholder={isFreeDonation ? '0 (Free Donation to Juniors)' : '0 (Set 0 for free giveaway)'}
                   min="0"
-                  required
+                  required={!isFreeDonation}
                   className={`w-full pl-10 pr-4 py-3 rounded-xl border text-sm font-mono transition-all ${
                     isFreeDonation
                       ? 'bg-emerald-50/50 border-emerald-300 text-emerald-800 font-bold cursor-not-allowed'

@@ -21,8 +21,12 @@ const { default: User, isCollegeEmailValid } = await import('../models/User.js')
 const { sanitizeKeys } = await import('../middlewares/sanitizeMiddleware.js');
 const { default: Listing, CATEGORIES, CONDITIONS, STATUSES } = await import('../models/Listing.js');
 const { protect } = await import('../middlewares/authMiddleware.js');
-const { isListingOwner, createListing, getListingById, markAsSold } = await import('../controllers/listingController.js');
-const { forgotPassword, verifyOtp, resetPassword, maskEmail } = await import('../controllers/authController.js');
+const { isListingOwner, createListing, getListingById, markAsSold, updateListing, deleteListing, updateListingStatus, getMyListings } = await import('../controllers/listingController.js');
+const { registerUser, loginUser, getMe, forgotPassword, verifyOtp, resetPassword, maskEmail } = await import('../controllers/authController.js');
+const { errorHandler, notFound } = await import('../middlewares/errorHandler.js');
+const { uploadSingleImage } = await import('../middlewares/uploadMiddleware.js');
+const { default: asyncHandler } = await import('../utils/asyncHandler.js');
+const { configureCloudinary } = await import('../utils/cloudinary.js');
 const { default: jwt } = await import('jsonwebtoken');
 const { default: bcrypt } = await import('bcryptjs');
 const { generateOtpEmail, generateWelcomeEmail } = await import('../utils/emailTemplates.js');
@@ -1203,4 +1207,115 @@ describe('=== ReuseCampus Senior Engineering Automated Test Suite ===', () => {
       }
     });
   });
+
+  describe('10. Regression Invariants: Controller Signatures, Error Handlers & Cloudinary', () => {
+    it('should verify global error handler has exactly 4 arguments for Express compliance', () => {
+      assert.strictEqual(errorHandler.length, 4, 'Express error handler must have exactly 4 arguments: (err, req, res, next)');
+    });
+
+    it('should verify notFound middleware has 3 arguments: (req, res, next)', () => {
+      assert.strictEqual(notFound.length, 3);
+    });
+
+    it('should safely forward errors through asyncHandler without crashing if next is omitted', async () => {
+      let forwardedError = null;
+      const failingHandler = asyncHandler(async (req, res, next) => {
+        throw new Error('Test async error');
+      });
+
+      // When next is provided
+      await failingHandler({}, {}, (err) => {
+        forwardedError = err;
+      });
+      assert.ok(forwardedError);
+      assert.strictEqual(forwardedError.message, 'Test async error');
+
+      // When next is omitted, it should throw instead of TypeError: next is not a function
+      await assert.rejects(async () => {
+        await failingHandler({}, {});
+      }, /Test async error/);
+    });
+
+    it('should verify configureCloudinary reads process.env.CLOUDINARY_CLOUD_NAME and returns non-empty credentials', () => {
+      const config = configureCloudinary();
+      assert.ok(config.cloudName, 'CLOUDINARY_CLOUD_NAME must be loaded');
+      assert.strictEqual(typeof config.cloudName, 'string');
+    });
+
+    it('should successfully update listing fields and call save() in updateListing', async () => {
+      const origFindById = Listing.findById;
+      let saved = false;
+
+      const mockListing = {
+        _id: '654321000000000000000077',
+        seller: '654321000000000000000001',
+        creatorId: '654321000000000000000001',
+        title: 'Original Title',
+        description: 'Original Description',
+        price: 250,
+        category: 'Books',
+        condition: 'Good',
+        status: 'Available',
+        imageUrl: 'https://example.com/orig.webp',
+        itemPhoto: 'https://example.com/orig.webp',
+        save: async function () {
+          saved = true;
+          return this;
+        },
+        populate: async function () {
+          return this;
+        },
+      };
+
+      Listing.findById = async () => mockListing;
+
+      try {
+        const req = {
+          params: { id: '654321000000000000000077' },
+          user: { _id: '654321000000000000000001' },
+          body: {
+            title: 'Updated Engineering Textbook',
+            description: 'Updated condition and price',
+            price: 180,
+            category: 'Books',
+            condition: 'Like New',
+            status: 'Sold',
+          },
+        };
+
+        let jsonResponse = null;
+        const res = {
+          status: () => res,
+          json: (data) => {
+            jsonResponse = data;
+          },
+        };
+
+        await updateListing(req, res);
+        assert.strictEqual(saved, true, 'listing.save() must be invoked');
+        assert.strictEqual(jsonResponse.success, true);
+        assert.strictEqual(mockListing.title, 'Updated Engineering Textbook');
+        assert.strictEqual(mockListing.price, 180);
+        assert.strictEqual(mockListing.condition, 'Like New');
+        assert.strictEqual(mockListing.status, 'Sold');
+      } finally {
+        Listing.findById = origFindById;
+      }
+    });
+
+    it('should verify uploadSingleImage returns an Express middleware function that handles errors gracefully', (t, done) => {
+      const middleware = uploadSingleImage('image');
+      assert.strictEqual(typeof middleware, 'function');
+      assert.strictEqual(middleware.length, 3); // (req, res, next)
+
+      // Verify it passes non-multipart requests through cleanly
+      const req = { headers: {} };
+      const res = {};
+      middleware(req, res, (err) => {
+        assert.strictEqual(err, undefined);
+        done();
+      });
+    });
+  });
 });
+

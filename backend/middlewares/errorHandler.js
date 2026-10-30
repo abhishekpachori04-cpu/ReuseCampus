@@ -16,10 +16,15 @@ export const notFound = (req, res, next) => {
  * with appropriate HTTP status codes.
  */
 export const errorHandler = (err, req, res, next) => {
+  // If headers were already sent to the client, delegate to the default Express error handler
+  if (res.headersSent) {
+    return next(err);
+  }
+
   let statusCode =
     err.statusCode ||
     err.status ||
-    (res.statusCode === 200 ? 500 : res.statusCode);
+    (res.statusCode === 200 ? 500 : res.statusCode || 500);
   let message = err.message || 'Internal Server Error';
 
   // Handle Mongoose Bad ObjectId / CastError (e.g., /api/listings/invalid-id)
@@ -50,6 +55,12 @@ export const errorHandler = (err, req, res, next) => {
   } else if (err.name === 'TokenExpiredError') {
     statusCode = 401;
     message = 'Authorization token has expired';
+  }
+
+  // Handle Multer upload errors if passed to next()
+  if (err.name === 'MulterError' || err.code === 'LIMIT_FILE_SIZE') {
+    statusCode = 400;
+    message = err.message || 'File upload failed';
   }
 
   res.status(statusCode).json({
