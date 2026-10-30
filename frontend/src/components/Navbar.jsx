@@ -32,6 +32,12 @@ const Navbar = () => {
   const { user, logout, updateProfile, isAuthenticated } = useAuth();
   const { savedItems } = useWishlist();
 
+  // Synchronize badge count across AuthContext user.savedItems and WishlistContext savedItems
+  const badgeCount =
+    Array.isArray(user?.savedItems)
+      ? user.savedItems.length
+      : savedItems.length;
+
   // Profile modal edit fields
   const [profileName, setProfileName] = useState('');
   const [profilePhone, setProfilePhone] = useState('');
@@ -183,22 +189,20 @@ const Navbar = () => {
               <button
                 type="button"
                 onClick={() => {
-                  navigate('/?saved=true');
-                  const feed = document.getElementById('browse-feed');
-                  feed?.scrollIntoView({ behavior: 'smooth' });
+                  navigate('/saved');
                 }}
                 className="relative p-2 rounded-full text-slate-600 hover:text-rose-600 hover:bg-rose-50/80 transition-all cursor-pointer active:scale-95 group"
-                title={`Saved Items (${savedItems.length})`}
+                title={`Saved Items (${badgeCount})`}
                 aria-label="Wishlist"
               >
                 <Heart
                   className={`w-5 h-5 transition-transform group-hover:scale-110 ${
-                    savedItems.length > 0 ? 'fill-red-500 text-red-500' : 'text-slate-600'
+                    badgeCount > 0 ? 'fill-red-500 text-red-500' : 'text-slate-600'
                   }`}
                 />
-                {savedItems.length > 0 && (
+                {badgeCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-xs animate-fadeIn">
-                    {savedItems.length > 99 ? '99+' : savedItems.length}
+                    {badgeCount > 99 ? '99+' : badgeCount}
                   </span>
                 )}
               </button>
@@ -276,22 +280,20 @@ const Navbar = () => {
               <button
                 type="button"
                 onClick={() => {
-                  navigate('/?saved=true');
-                  const feed = document.getElementById('browse-feed');
-                  feed?.scrollIntoView({ behavior: 'smooth' });
+                  navigate('/saved');
                 }}
                 className="relative p-1.5 rounded-lg text-slate-600 hover:text-rose-600 transition-colors cursor-pointer shrink-0"
-                title={`Saved Items (${savedItems.length})`}
+                title={`Saved Items (${badgeCount})`}
                 aria-label="Wishlist"
               >
                 <Heart
                   className={`w-4 h-4 sm:w-5 sm:h-5 ${
-                    savedItems.length > 0 ? 'fill-red-500 text-red-500' : 'text-slate-600'
+                    badgeCount > 0 ? 'fill-red-500 text-red-500' : 'text-slate-600'
                   }`}
                 />
-                {savedItems.length > 0 && (
+                {badgeCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center">
-                    {savedItems.length > 9 ? '9+' : savedItems.length}
+                    {badgeCount > 9 ? '9+' : badgeCount}
                   </span>
                 )}
               </button>
@@ -395,17 +397,17 @@ const Navbar = () => {
             )}
 
             <Link
-              to="/?saved=true"
+              to="/saved"
               onClick={() => setIsOpen(false)}
               className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-rose-50 hover:text-rose-600"
             >
               <div className="flex items-center gap-2.5">
-                <Heart className={`w-4 h-4 ${savedItems.length > 0 ? 'fill-red-500 text-red-500' : ''}`} />
+                <Heart className={`w-4 h-4 ${badgeCount > 0 ? 'fill-red-500 text-red-500' : ''}`} />
                 <span>Saved Wishlist</span>
               </div>
-              {savedItems.length > 0 && (
+              {badgeCount > 0 && (
                 <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full">
-                  {savedItems.length}
+                  {badgeCount}
                 </span>
               )}
             </Link>

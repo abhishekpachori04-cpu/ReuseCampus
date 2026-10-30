@@ -90,6 +90,12 @@ const userSchema = new mongoose.Schema(
     lastOtpSentAt: {
       type: Date,
     },
+    savedItems: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Listing',
+      },
+    ],
   },
   {
     timestamps: true,

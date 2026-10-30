@@ -123,6 +123,26 @@ export const updateProfile = async (profileData) => {
 };
 export const updateProfileApi = updateProfile;
 
+/**
+ * Retrieve saved listings (wishlist) for authenticated student with dead-reference cleanup
+ */
+export const getSavedItems = async () => {
+  return API.get('/users/saved');
+};
+export const getSavedItemsApi = getSavedItems;
+export const getWishlist = getSavedItems;
+export const getWishlistApi = getSavedItems;
+
+/**
+ * Toggle saving/unsaving a listing for authenticated user
+ * @param {string} id - Listing MongoDB ID
+ */
+export const toggleSaveItem = async (id) => {
+  return API.post(`/users/saved/${id}`);
+};
+export const toggleSaveItemApi = toggleSaveItem;
+export const toggleWishlistApi = toggleSaveItem;
+
 /* ==========================================================================
    LISTINGS APIS
    ========================================================================== */

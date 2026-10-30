@@ -21,11 +21,11 @@ const { default: User, isCollegeEmailValid } = await import('../models/User.js')
 const { sanitizeKeys } = await import('../middlewares/sanitizeMiddleware.js');
 const { default: Listing, CATEGORIES, CONDITIONS, STATUSES } = await import('../models/Listing.js');
 const { protect } = await import('../middlewares/authMiddleware.js');
-const { isListingOwner, createListing, getListingById, markAsSold, updateListing, deleteListing, updateListingStatus, getMyListings } = await import('../controllers/listingController.js');
+const { isListingOwner, createListing, getListingById, markAsSold, updateListing, deleteListing, updateListingStatus, getMyListings, getListings } = await import('../controllers/listingController.js');
 const { registerUser, loginUser, getMe, forgotPassword, verifyOtp, resetPassword, maskEmail } = await import('../controllers/authController.js');
+const { getSavedItems, toggleSaveItem, getUserProfile, updateUserProfile } = await import('../controllers/userController.js');
 const { errorHandler, notFound } = await import('../middlewares/errorHandler.js');
 const { uploadSingleImage } = await import('../middlewares/uploadMiddleware.js');
-const { default: asyncHandler } = await import('../utils/asyncHandler.js');
 const { configureCloudinary } = await import('../utils/cloudinary.js');
 const { default: jwt } = await import('jsonwebtoken');
 const { default: bcrypt } = await import('bcryptjs');
@@ -1217,29 +1217,45 @@ describe('=== ReuseCampus Senior Engineering Automated Test Suite ===', () => {
       assert.strictEqual(notFound.length, 3);
     });
 
-    it('should safely forward errors through asyncHandler without crashing if next is omitted', async () => {
-      let forwardedError = null;
-      const failingHandler = asyncHandler(async (req, res, next) => {
-        throw new Error('Test async error');
-      });
+    it('should verify controllers use standard async (req, res) signature with internal try/catch blocks and no next parameter', () => {
+      const controllers = [
+        { name: 'createListing', fn: createListing },
+        { name: 'getListingById', fn: getListingById },
+        { name: 'markAsSold', fn: markAsSold },
+        { name: 'updateListing', fn: updateListing },
+        { name: 'deleteListing', fn: deleteListing },
+        { name: 'updateListingStatus', fn: updateListingStatus },
+        { name: 'getMyListings', fn: getMyListings },
+        { name: 'getListings', fn: getListings },
+        { name: 'registerUser', fn: registerUser },
+        { name: 'loginUser', fn: loginUser },
+        { name: 'getMe', fn: getMe },
+        { name: 'forgotPassword', fn: forgotPassword },
+        { name: 'verifyOtp', fn: verifyOtp },
+        { name: 'resetPassword', fn: resetPassword },
+        { name: 'getUserProfile', fn: getUserProfile },
+        { name: 'updateUserProfile', fn: updateUserProfile },
+        { name: 'getSavedItems', fn: getSavedItems },
+        { name: 'toggleSaveItem', fn: toggleSaveItem },
+      ];
 
-      // When next is provided
-      await failingHandler({}, {}, (err) => {
-        forwardedError = err;
-      });
-      assert.ok(forwardedError);
-      assert.strictEqual(forwardedError.message, 'Test async error');
+      for (const { name, fn } of controllers) {
+        assert.strictEqual(typeof fn, 'function', `${name} must be an exported function`);
+        assert.strictEqual(fn.length, 2, `${name} must have standard (req, res) signature with exactly 2 parameters (no next)`);
 
-      // When next is omitted, it should throw instead of TypeError: next is not a function
-      await assert.rejects(async () => {
-        await failingHandler({}, {});
-      }, /Test async error/);
+        const fnStr = fn.toString();
+        const paramList = fnStr.slice(0, fnStr.indexOf('{'));
+        assert.ok(!paramList.includes('next'), `${name} signature must not accept next parameter`);
+        assert.ok(fnStr.includes('try') && fnStr.includes('catch'), `${name} must implement internal try/catch block`);
+      }
     });
 
-    it('should verify configureCloudinary reads process.env.CLOUDINARY_CLOUD_NAME and returns non-empty credentials', () => {
+    it('should verify configureCloudinary reads process.env.CLOUDINARY_CLOUD_NAME and does not contain Root fallback', () => {
       const config = configureCloudinary();
       assert.ok(config.cloudName, 'CLOUDINARY_CLOUD_NAME must be loaded');
       assert.strictEqual(typeof config.cloudName, 'string');
+      assert.notStrictEqual(config.cloudName, 'Root', "Cloudinary config must not contain 'Root' fallback");
+      assert.notStrictEqual(config.cloudName.toLowerCase(), 'root', "Cloudinary config must not contain 'Root' fallback");
     });
 
     it('should successfully update listing fields and call save() in updateListing', async () => {
@@ -1315,6 +1331,109 @@ describe('=== ReuseCampus Senior Engineering Automated Test Suite ===', () => {
         assert.strictEqual(err, undefined);
         done();
       });
+    });
+  });
+
+  describe('11. Wishlist (Saved Items) Ghost Item Cleanup & Cross-User Synchronization', () => {
+    it('should include savedItems array referencing Listing in User schema', () => {
+      const userSchema = User.schema;
+      assert.ok(userSchema.path('savedItems'), 'User schema must define savedItems path');
+    });
+
+    it('should filter out null entries in getSavedItems, auto-cleanup dead IDs, and invoke user.save()', async () => {
+      const origFindById = User.findById;
+      try {
+        let savedCalled = false;
+        const validListing = {
+          _id: '64b1f2e9a1b2c3d4e5f6a7b1',
+          title: 'Mechanical Drafter',
+          price: 250,
+          status: 'Available',
+        };
+
+        // User document with 1 valid listing and 2 dead/null references
+        const mockUser = {
+          _id: '64b1f2e9a1b2c3d4e5f6a7b0',
+          name: 'Abhishek Pachori',
+          savedItems: [validListing, null, undefined],
+          populate: async () => mockUser,
+          save: async () => {
+            savedCalled = true;
+            return mockUser;
+          },
+        };
+
+        User.findById = () => ({
+          populate: async () => mockUser,
+        });
+
+        const req = { user: { _id: '64b1f2e9a1b2c3d4e5f6a7b0' } };
+        let jsonResponse = null;
+        const res = {
+          status: () => res,
+          json: (data) => {
+            jsonResponse = data;
+          },
+        };
+
+        await getSavedItems(req, res);
+
+        assert.strictEqual(savedCalled, true, 'Auto-cleanup must trigger user.save() when dead items exist');
+        assert.strictEqual(jsonResponse.success, true);
+        assert.strictEqual(jsonResponse.count, 1);
+        assert.strictEqual(jsonResponse.data.length, 1);
+        assert.strictEqual(jsonResponse.data[0]._id, validListing._id);
+        assert.deepStrictEqual(mockUser.savedItems, [validListing._id]);
+      } finally {
+        User.findById = origFindById;
+      }
+    });
+
+    it('should remove deleted listing from savedItems array across ALL users in deleteListing', async () => {
+      const origFindById = Listing.findById;
+      const origUpdateMany = User.updateMany;
+      try {
+        let updateManyArgs = null;
+        User.updateMany = async (filter, update) => {
+          updateManyArgs = { filter, update };
+          return { modifiedCount: 3 };
+        };
+
+        const listingId = '64b1f2e9a1b2c3d4e5f6a7b9';
+        const sellerId = '64b1f2e9a1b2c3d4e5f6a7b0';
+        let deleted = false;
+
+        Listing.findById = async () => ({
+          _id: listingId,
+          seller: sellerId,
+          deleteOne: async () => {
+            deleted = true;
+          },
+        });
+
+        const req = {
+          params: { id: listingId },
+          user: { _id: sellerId },
+        };
+        let jsonResponse = null;
+        const res = {
+          status: () => res,
+          json: (data) => {
+            jsonResponse = data;
+          },
+        };
+
+        await deleteListing(req, res);
+
+        assert.strictEqual(deleted, true);
+        assert.strictEqual(jsonResponse.success, true);
+        assert.ok(updateManyArgs, 'User.updateMany must be called');
+        assert.deepStrictEqual(updateManyArgs.filter, { savedItems: listingId });
+        assert.deepStrictEqual(updateManyArgs.update, { $pull: { savedItems: listingId } });
+      } finally {
+        Listing.findById = origFindById;
+        User.updateMany = origUpdateMany;
+      }
     });
   });
 });

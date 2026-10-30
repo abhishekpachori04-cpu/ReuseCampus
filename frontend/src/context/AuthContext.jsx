@@ -96,6 +96,22 @@ export const AuthProvider = ({ children }) => {
     throw new Error(res.data?.message || 'Failed to update profile');
   };
 
+  // Update saved items helper to synchronize wishlist item IDs with User state
+  const updateSavedItems = (savedItemIds) => {
+    const cleanedIds = Array.isArray(savedItemIds)
+      ? savedItemIds
+          .map((item) => (typeof item === 'object' && item !== null ? item._id : item))
+          .filter(Boolean)
+      : [];
+    setUser((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        savedItems: cleanedIds,
+      };
+    });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -106,6 +122,7 @@ export const AuthProvider = ({ children }) => {
         registerUser,
         logout,
         updateProfile,
+        updateSavedItems,
         loading,
         isAuthenticated: !!user,
       }}

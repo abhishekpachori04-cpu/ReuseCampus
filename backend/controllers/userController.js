@@ -27,6 +27,7 @@ export const getUserProfile = async (req, res) => {
         college: user.college,
         phone: user.phone,
         avatar: user.avatar,
+        savedItems: user.savedItems || [],
         listingsCount,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
@@ -105,6 +106,7 @@ export const updateUserProfile = async (req, res) => {
         college: updatedUser.college,
         phone: updatedUser.phone,
         avatar: updatedUser.avatar,
+        savedItems: updatedUser.savedItems || [],
         createdAt: updatedUser.createdAt,
         updatedAt: updatedUser.updatedAt,
       },
@@ -118,3 +120,106 @@ export const updateUserProfile = async (req, res) => {
     });
   }
 };
+
+/**
+ * @desc    Get user's saved items (wishlist) with ghost-item auto-cleanup
+ * @route   GET /api/users/saved or GET /api/users/wishlist
+ * @access  Private
+ */
+export const getSavedItems = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).populate({
+      path: 'savedItems',
+      populate: { path: 'seller', select: 'name email college phone avatar' },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User profile not found',
+      });
+    }
+
+    const originalSavedItems = Array.isArray(user.savedItems) ? user.savedItems : [];
+
+    // Filter resulting array to remove any null / deleted listing references
+    const validItems = originalSavedItems.filter(
+      (item) => item !== null && item !== undefined && item._id
+    );
+
+    // Auto-Cleanup: If valid items count is less than original, prune dead IDs and save
+    if (validItems.length < originalSavedItems.length) {
+      user.savedItems = validItems.map((item) => item._id);
+      await user.save();
+    }
+
+    return res.json({
+      success: true,
+      count: validItems.length,
+      data: validItems,
+      savedItems: validItems,
+    });
+  } catch (error) {
+    console.error('[Get Saved Items Error]:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Server Error',
+    });
+  }
+};
+
+export const getWishlist = getSavedItems;
+
+/**
+ * @desc    Toggle saving an item in user's saved items (wishlist)
+ * @route   POST /api/users/saved/:id or POST /api/users/wishlist/:id
+ * @access  Private
+ */
+export const toggleSaveItem = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    if (!Array.isArray(user.savedItems)) {
+      user.savedItems = [];
+    }
+
+    const idString = id.toString();
+    const existingIndex = user.savedItems.findIndex(
+      (savedId) => (savedId ? savedId.toString() : '') === idString
+    );
+
+    let isSaved = false;
+    if (existingIndex > -1) {
+      user.savedItems.splice(existingIndex, 1);
+      isSaved = false;
+    } else {
+      user.savedItems.push(id);
+      isSaved = true;
+    }
+
+    await user.save();
+
+    return res.json({
+      success: true,
+      isSaved,
+      savedItems: user.savedItems,
+      message: isSaved ? 'Item added to saved items' : 'Item removed from saved items',
+    });
+  } catch (error) {
+    console.error('[Toggle Save Item Error]:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Server Error',
+    });
+  }
+};
+
+export const toggleWishlist = toggleSaveItem;

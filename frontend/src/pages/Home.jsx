@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { getListings } from '../services/api';
 import { useDebounce } from '../hooks/useDebounce';
+import useAuth from '../context/useAuth';
 import useWishlist from '../hooks/useWishlist';
 import ListingCard from '../components/listings/ListingCard';
 import ListingFilterBar from '../components/listings/ListingFilterBar';
@@ -25,7 +26,8 @@ import ListingSkeleton from '../components/ui/ListingSkeleton';
 const Home = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { savedIds, count: savedCount } = useWishlist();
+  const { updateSavedItems } = useAuth();
+  const { savedIds, setSavedItems, count: savedCount } = useWishlist();
 
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -84,7 +86,23 @@ const Home = () => {
 
         const res = await getListings(params);
         if (res.data?.success && Array.isArray(res.data?.data)) {
-          const items = res.data.data;
+          const items = res.data.data.filter(
+            (item) => item !== null && item !== undefined && item._id
+          );
+
+          // Auto-Cleanup: When viewing saved items, prune dead IDs if any listing was removed
+          if (isSavedOnly && savedIds.length > 0) {
+            const validIds = items.map((i) => String(i._id));
+            if (validIds.length < savedIds.length) {
+              if (typeof setSavedItems === 'function') {
+                setSavedItems(validIds);
+              }
+              if (typeof updateSavedItems === 'function') {
+                updateSavedItems(validIds);
+              }
+            }
+          }
+
           if (isAppending) {
             setListings((prev) => [...prev, ...items]);
           } else {
@@ -105,7 +123,7 @@ const Home = () => {
         setLoadingMore(false);
       }
     },
-    [debouncedSearch, selectedCategory, selectedCondition, selectedStatus, sortBy, isFreeOnly, isSavedOnly, savedIds]
+    [debouncedSearch, selectedCategory, selectedCondition, selectedStatus, sortBy, isFreeOnly, isSavedOnly, savedIds, setSavedItems, updateSavedItems]
   );
 
   useEffect(() => {
@@ -417,12 +435,14 @@ const Home = () => {
         ) : (
           <div className="space-y-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-              {listings.map((item) => (
-                <ListingCard
-                  key={item._id}
-                  item={item}
-                />
-              ))}
+              {listings
+                .filter((item) => item !== null && item !== undefined && item._id)
+                .map((item) => (
+                  <ListingCard
+                    key={item._id}
+                    item={item}
+                  />
+                ))}
             </div>
 
             {/* Load More Button */}

@@ -70,9 +70,31 @@ export const WishlistProvider = ({ children }) => {
     [savedItems]
   );
 
+  /**
+   * Set or sync the entire wishlist IDs array (e.g. after removing dead/ghost references)
+   */
+  const syncSavedItems = useCallback((itemsOrIds) => {
+    const ids = Array.isArray(itemsOrIds)
+      ? itemsOrIds
+          .map((item) => (typeof item === 'object' && item !== null ? item._id : item))
+          .filter(Boolean)
+          .map(String)
+      : [];
+
+    setSavedItems(ids);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+    } catch (err) {
+      console.error('Failed to write wishlist to localStorage:', err);
+    }
+  }, []);
+
   const value = useMemo(
     () => ({
       savedItems,
+      setSavedItems: syncSavedItems,
+      syncSavedItems,
+      cleanDeadIds: syncSavedItems,
       toggleSaveItem,
       isSaved,
       // Aliases for seamless backward compatibility
@@ -81,7 +103,7 @@ export const WishlistProvider = ({ children }) => {
       isWishlisted: isSaved,
       count: savedItems.length,
     }),
-    [savedItems, toggleSaveItem, isSaved]
+    [savedItems, syncSavedItems, toggleSaveItem, isSaved]
   );
 
   return (

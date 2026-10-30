@@ -7,6 +7,7 @@ import Register from './pages/Register';
 import CreateListing from './pages/CreateListing';
 import MyListings from './pages/MyListings';
 import ListingDetails from './pages/ListingDetails';
+import SavedItems from './pages/SavedItems';
 import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
@@ -47,6 +48,9 @@ function App() {
               />
               <Route path="/listings/:id" element={<ListingDetails />} />
               <Route path="/listing/:id" element={<ListingDetails />} />
+              <Route path="/saved" element={<SavedItems />} />
+              <Route path="/wishlist" element={<SavedItems />} />
+              <Route path="/saved-items" element={<SavedItems />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
