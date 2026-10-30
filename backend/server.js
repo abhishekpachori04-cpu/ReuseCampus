@@ -48,6 +48,7 @@ const validateEnvironment = () => {
 validateEnvironment();
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 5000;
 
 // HTTP Security Headers (secures headers while allowing cross-origin image rendering)
